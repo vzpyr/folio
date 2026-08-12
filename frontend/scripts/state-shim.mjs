@@ -1,0 +1,1 @@
+globalThis.$state = (v) => v;

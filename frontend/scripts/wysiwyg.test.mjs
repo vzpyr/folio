@@ -1,0 +1,272 @@
+import { JSDOM } from "jsdom";
+import { check, done } from "./harness.mjs";
+
+const dom = new JSDOM("<!DOCTYPE html><body></body>", {
+  url: "http://localhost/",
+  pretendToBeVisual: true,
+});
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+globalThis.MutationObserver = dom.window.MutationObserver;
+globalThis.DOMParser = dom.window.DOMParser;
+globalThis.Node = dom.window.Node;
+globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.Element = dom.window.Element;
+globalThis.Range = dom.window.Range;
+globalThis.DOMRect = dom.window.DOMRect;
+globalThis.getSelection = dom.window.getSelection.bind(dom.window);
+globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
+  dom.window,
+);
+
+const { createEditor, setBody, getMarkdown } =
+  await import("../src/lib/editor/editor.ts");
+const { renderMarkdown } = await import("../src/lib/editor/md-render.ts");
+const { parseFrontmatter, writeFrontmatter } =
+  await import("../src/lib/editor/markdown.ts");
+
+const norm = (s) => s.replace(/\s+$/, "");
+
+function build(body) {
+  const el = document.createElement("div");
+  document.body.appendChild(el);
+  const ed = createEditor(el, {
+    body: "",
+    store: {},
+    index: {},
+    onToast: () => {},
+  });
+  setBody(ed, body);
+  return ed;
+}
+function roundtrip(md) {
+  const ed = build(md);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  return out;
+}
+
+const cases = [
+  ["headings (blank lines)", "# one\n## two\n### three", "collapse"],
+  ["emphasis", "**bold** *italic* ~~strike~~ `code`"],
+  ["underline <u>", "hello <u>world</u>"],
+  ["link", "a [link](https://example.com) b"],
+  ["wiki [[target]]", "see [[Target]]"],
+  ["wiki [[target|alias]]", "see [[Target|alias]]"],
+  ["task list", "- [ ] todo\n- [x] done"],
+  ["bullet + ordered", "- one\n- two\n\n1. first\n2. second"],
+  ["blockquote", "> quote\n\n> more"],
+  ["code block with lang", "```js\nconst x = 1;\n```"],
+  ["gfm table", "| a | b |\n| --- | --- |\n| 1 | 2 |"],
+  ["image ref", "![alt](assets/abc-123.png)"],
+  [
+    "image with width (inline html)",
+    '<img src="assets/abc-123.png" width="400" alt="alt">',
+  ],
+  [
+    "file chip with meta",
+    '[report.pdf](assets/abc-123.pdf "2048, application/pdf")',
+  ],
+  ["file chip without meta", "see [notes.txt](assets/abc-456.txt)"],
+  ["horizontal rule", "---"],
+  [
+    "mixed doc",
+    "# title\n\nsome **bold** and *italic* with a [link](https://x.io)\n\n- [ ] task\n- item\n\n| h |\n| --- |\n| v |\n\nsee [[Other|other note]] and <u>underlined</u>",
+    "collapse",
+  ],
+];
+for (const [name, md, mode] of cases) {
+  const out = roundtrip(md);
+  const eq =
+    mode === "collapse" ? (s) => norm(s).replace(/\n{2,}/g, "\n") : norm;
+  check(`roundtrip: ${name}`, eq(out) === eq(md), JSON.stringify(out));
+}
+
+{
+  const ed = build("");
+  ed.commands.insertContent("see [[x]]");
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typed [[x]] stays literal",
+    norm(out) === "see [[x]]",
+    JSON.stringify(out),
+  );
+}
+
+{
+  const ed = build("");
+  ed.chain().focus().toggleBold().insertContent("b").run();
+  check(
+    "toolbar bold",
+    getMarkdown(ed).includes("**b**"),
+    JSON.stringify(getMarkdown(ed)),
+  );
+  ed.destroy();
+  const ed2 = build("");
+  ed2.chain().focus().toggleUnderline().insertContent("u").run();
+  check(
+    "toolbar underline",
+    getMarkdown(ed2).includes("<u>u</u>"),
+    JSON.stringify(getMarkdown(ed2)),
+  );
+  ed2.destroy();
+  const ed3 = build("");
+  ed3.chain().focus().toggleTaskList().insertContent("t").run();
+  check(
+    "toolbar task list",
+    getMarkdown(ed3).includes("- [ ] t"),
+    JSON.stringify(getMarkdown(ed3)),
+  );
+  ed3.destroy();
+  const ed4 = build("");
+  ed4.chain().focus().insertTable({ rows: 2, cols: 2 }).run();
+  check(
+    "toolbar table",
+    getMarkdown(ed4).includes("|  |  |"),
+    JSON.stringify(getMarkdown(ed4)),
+  );
+  ed4.destroy();
+  const ed5 = build("");
+  ed5
+    .chain()
+    .focus()
+    .insertContent({
+      type: "fileChip",
+      attrs: {
+        name: "a.pdf",
+        ref: "assets/x.pdf",
+        size: 1048576,
+        mime: "application/pdf",
+      },
+    })
+    .run();
+  const md5 = getMarkdown(ed5);
+  check(
+    "file chip serializes as link+title",
+    md5.includes('[a.pdf](assets/x.pdf "1048576, application/pdf")'),
+    JSON.stringify(md5),
+  );
+  ed5.destroy();
+  {
+    const edA = build("");
+    edA
+      .chain()
+      .focus()
+      .insertContent({
+        type: "fileChip",
+        attrs: {
+          name: "a.py",
+          ref: "assets/x.py",
+          size: 9523,
+          mime: "text/x-python",
+        },
+      })
+      .run();
+    const html = edA.getHTML();
+    edA.destroy();
+    const edB = build(`<p>${html}</p>`);
+    const out = getMarkdown(edB);
+    check(
+      "chip clipboard round-trips to link+title",
+      norm(out).trim() === '[a.py](assets/x.py "9523, text/x-python")',
+      JSON.stringify(out) + " from " + html,
+    );
+    edB.destroy();
+  }
+  const ed6 = build("");
+  ed6
+    .chain()
+    .focus()
+    .insertContent({
+      type: "image",
+      attrs: { src: "assets/x.png", alt: "a", ref: "assets/x.png", width: 300 },
+    })
+    .run();
+  const md6 = getMarkdown(ed6);
+  check(
+    "image width serializes as <img width>",
+    md6.includes('<img src="assets/x.png" width="300" alt="a">'),
+    JSON.stringify(md6),
+  );
+  ed6.destroy();
+}
+
+{
+  const html = renderMarkdown("hello <u>world</u>");
+  check(
+    "renderer passes <u> through",
+    html.includes("<u>world</u>") && !html.includes("&lt;u&gt;"),
+    html,
+  );
+}
+{
+  const html = renderMarkdown('hi <u onclick="x()">a</u>');
+  check(
+    "renderer escapes <u with attrs",
+    html.includes("&lt;u onclick=") && !html.includes("<u onclick"),
+    html,
+  );
+}
+{
+  const html = renderMarkdown("`<u>x</u>` in code");
+  check("code still escapes <u>", html.includes("&lt;u&gt;x&lt;/u&gt;"), html);
+}
+{
+  const html = renderMarkdown("**bold** stays");
+  check(
+    "renderer bold still works",
+    html.includes("<strong>bold</strong>"),
+    html,
+  );
+}
+{
+  const html = renderMarkdown(
+    '<img src="assets/abc-123.png" width="400" alt="alt">',
+  );
+  check(
+    "renderer passes sized <img> through",
+    html.includes('<img src="assets/abc-123.png" width="400"'),
+    html,
+  );
+}
+{
+  const html = renderMarkdown(
+    '[report.pdf](assets/abc-123.pdf "2048, application/pdf")',
+  );
+  check(
+    "renderer link title does not corrupt href",
+    html.includes('href="assets/abc-123.pdf"') &&
+      !html.includes('2048, application/pdf">&quot;'),
+    html,
+  );
+}
+
+{
+  const fm = {
+    id: "x",
+    title: "T",
+    created: 1,
+    updated: 2,
+    tags: ["a"],
+    pinned: true,
+    folder: "f",
+  };
+  const content = writeFrontmatter(fm, "# body");
+  const parsed = parseFrontmatter(content);
+  const ok =
+    parsed.meta.title === "T" &&
+    parsed.meta.pinned === true &&
+    parsed.meta.tags !== undefined &&
+    parsed.meta.tags[0] === "a" &&
+    parsed.meta.folder === "f" &&
+    parsed.meta.created === 1 &&
+    parsed.body === "# body";
+  check(
+    "frontmatter round-trips",
+    ok,
+    content + " → " + JSON.stringify(parsed.meta),
+  );
+}
+
+done("wysiwyg");

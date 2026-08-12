@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/android-schema.json",
+  "identifier": "android-main",
+  "windows": ["main"],
+  "platforms": ["android"],
+  "permissions": ["core:default"]
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- window and splash bg; mirrors frontend bg token. dark -->
+    <color name="folio_window_bg">#FF0F0F0F</color>
+</resources>

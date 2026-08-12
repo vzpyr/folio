@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- empty/transparent splash icon. we don't want any circle-masked launcher
+     icon on the splash — the wordmark lives in the bottom branding slot
+     (folio_branding.xml). pointing windowSplashScreenAnimatedIcon at this
+     transparent vector suppresses the centered icon slot on both the
+     Android 12+ platform splash and the pre-12 compat path, so the splash
+     shows only the solid background color (+ the bottom wordmark on 12+). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1dp"
+    android:height="1dp"
+    android:viewportWidth="1"
+    android:viewportHeight="1">
+    <path
+        android:pathData="M0,0L0,0Z"
+        android:fillColor="#00000000" />
+</vector>

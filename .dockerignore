@@ -1,0 +1,6 @@
+*
+!frontend
+!server
+frontend/dist
+frontend/node_modules
+server/target

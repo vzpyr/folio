@@ -1,0 +1,705 @@
+/* folio design system — tokens + global styles.
+ *
+ * RULES (the "requirement" for every margin/padding/gap/height):
+ *   • ALL spacing is symmetric (same value on all four sides) — the only
+ *     exception is height-fixed controls (inputs, buttons, selects), which
+ *     use `padding: 0 var(--ctl-px)`.
+ *   • ALL spacing comes from tokens: the --s* grid, the symmetric --pad-*
+ *     scale, and the --gap* values. No raw px/rem numbers in components.
+ *   • ALL heights come from tokens: --ctl-h (primary controls), --icon-btn*
+ *     (icon buttons), --tabbar-h, --fab, --dot.
+ *   • Density changes (mobile ≤800px, or any coarse-pointer device) happen
+ *     by overriding TOKENS ONLY in the media blocks below — there are no
+ *     element rules there, so nothing can ever grow out of sync.
+ *   • The mobile breakpoint MUST stay in sync with MOBILE_BREAKPOINT in
+ *     src/lib/util/mobile.svelte.ts.
+ */
+
+:root {
+  /* grayscale ramp — light theme */
+  --g0: #ffffff;
+  --g1: #f6f6f6;
+  --g2: #ececec;
+  --g3: #d9d9d9;
+  --g4: #b3b3b3;
+  --g5: #8c8c8c;
+  --g6: #5c5c5c;
+  --g7: #333333;
+  --g8: #1a1a1a;
+  --g9: #000000;
+
+  --bg: var(--g0);
+  --bg-2: var(--g1);
+  --bg-3: var(--g2);
+  --fg: var(--g9);
+  --fg-2: var(--g6);
+  --fg-3: var(--g5);
+  --border: var(--g3);
+  --border-strong: var(--g4);
+  --selection-bg: var(--g2);
+  --code-bg: var(--g1);
+
+  /* spacing — strict 4px grid (the only spacing values the app uses) */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+
+  /* radii */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-full: 9999px;
+
+  /* typography scale — every font-size in the app comes from here */
+  --fs-xs: 12px; /* meta, timestamps, counts, section labels */
+  --fs-sm: 13px; /* buttons, combos, list previews */
+  --fs-base: 14px; /* body, list titles, inputs */
+  --fs-lg: 16px; /* note title, modal titles */
+  --fs-xl: 18px; /* app/section headings */
+  --fs-2xl: 22px; /* page h1, editor h1 */
+  --fs-3xl: 24px; /* gate h1 */
+
+  /* symmetric padding scale — every box pads the SAME on all four sides.
+     controls are the one exception: height is fixed by --ctl-h, so their
+     vertical padding is 0 and horizontal is --ctl-px. */
+  --pad-xs: var(--s1); /* chips, tags, dense strips, menus */
+  --pad-sm: var(--s2); /* compact rows, small buttons, menu items */
+  --pad-md: var(--s3); /* dropdown items, cards, notices */
+  --pad-lg: var(--s4); /* bars, panels, rows, modals */
+  --pad-xl: var(--s5); /* pages */
+
+  /* contextual aliases — still symmetric */
+  --pad-bar: var(
+    --s3
+  ); /* bars: chrome, list header, note topbar/toolbar/metabar */
+  --pad-panel: var(--s3); /* side panels: sidebar sections, backlinks */
+  --pad-row: var(--s3); /* list rows + the list container */
+  --pad-page: var(--s5); /* page bodies: settings, editor */
+
+  /* gaps — the only inter-element gaps in the app */
+  --gap: var(--s2); /* between related elements (flex gaps, small margins) */
+  --gap-lg: var(--s3); /* between groups */
+
+  /* density — desktop defaults */
+  --ctl-h: 40px; /* primary bar controls: inputs, buttons, selects, combos */
+  --ctl-px: var(--s3); /* horizontal padding inside a height-fixed control */
+  --icon-btn: 28px; /* secondary icon buttons (toolbar, +new, close) */
+  --icon-btn-xs: 20px; /* tiny inline icon buttons (×, add-folder) */
+  --panel-w: 240px; /* side panels: backlinks, wiki picker */
+  --sidebar-w: 220px; /* desktop sidebar */
+  --dot: 6px; /* status/unsaved dots */
+  --maxw-editor: 760px; /* editor column */
+  --maxw-page: 600px; /* settings page */
+  --maxw-modal: 480px; /* modals */
+  --maxw-narrow: 360px; /* narrow content columns: gate card, notices stack */
+  --tabbar-h: 56px; /* mobile bottom tab bar (excl. safe area) */
+  --fab: 46px; /* elevated create button on the tab bar */
+  --fab-overhang: 10px; /* how far the fab pokes above the tab bar */
+  --fab-icon: 24px; /* icon inside the fab */
+  --menu-w: 160px; /* context menus (table menu) */
+  --search-w: 140px; /* desktop list search input */
+
+  --font:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --font-mono:
+    ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --focus-ring: 2px solid var(--fg-3);
+}
+
+[data-theme="dark"] {
+  --bg: #0f0f0f;
+  --bg-2: #171717;
+  --bg-3: #1f1f1f;
+  --fg: #f2f2f2;
+  --fg-2: #a8a8a8;
+  --fg-3: #7a7a7a;
+  --border: #2c2c2c;
+  --border-strong: #3d3d3d;
+  --selection-bg: #2c2c2c;
+  --code-bg: #171717;
+}
+
+/* MOBILE BREAKPOINT: 800px — keep in sync with MOBILE_BREAKPOINT in
+   src/lib/util/mobile.svelte.ts. Narrow screens get bigger touch targets and
+   denser page/row padding. Token-only overrides: no element rules here,
+   so nothing can ever "blow up" on its own. */
+@media (max-width: 800px) {
+  :root {
+    --ctl-h: 44px; /* ≥44px touch targets */
+    --icon-btn: 32px;
+    --icon-btn-xs: 24px;
+    --pad-row: var(--s2);
+    --pad-page: var(--s3);
+  }
+}
+
+/* touch hardware (tablets, touch laptops — wide windows with a coarse
+   pointer): the same density bump, token-only. */
+@media (pointer: coarse) {
+  :root {
+    --ctl-h: 44px;
+    --icon-btn: 32px;
+    --icon-btn-xs: 24px;
+  }
+}
+
+/* global reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font);
+  font-size: var(--fs-base);
+  line-height: 1.5;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  height: 100%;
+  /* Android edge-to-edge (MainActivity.enableEdgeToEdge) lets the system
+     status/nav bars overlay the webview. viewport-fit=cover (index.html)
+     exposes env(safe-area-inset-*) to CSS; pad the content root so app UI
+     sits below the status bar while body's --bg still fills behind the bars
+     for a seamless edge-to-edge look. env() is 0 on desktop/regular web, so
+     this is a no-op there. */
+  padding-top: env(safe-area-inset-top);
+}
+
+/* selection */
+::selection {
+  background: var(--selection-bg);
+}
+
+/* focus */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+/* base elements */
+input,
+button,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--fg);
+  text-transform: lowercase;
+}
+
+a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--fg-3);
+}
+
+a:hover {
+  text-decoration-color: var(--fg);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s3);
+  overflow-x: auto;
+}
+
+code {
+  background: var(--code-bg);
+  border-radius: var(--r-sm);
+  padding: 1px var(--s1);
+}
+
+pre code {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--s4) 0;
+}
+
+/* checkboxes — one shared style for every checkbox in the app (list filters,
+   vault gate, editor task lists). grayscale only: no native white background,
+   outline is the lighter border gray, checkmark is a muted gray. */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  position: relative;
+  vertical-align: middle;
+  background: var(--bg-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:hover {
+  border-color: var(--fg-3);
+}
+
+input[type="checkbox"]:checked {
+  background: var(--fg-2);
+  border-color: var(--fg-2);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--bg-3);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* utility */
+.lc {
+  text-transform: lowercase;
+}
+
+/* touch — no double-tap zoom, no hover-only affordances */
+button,
+input,
+select,
+textarea,
+a,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* shared combobox — the folder picker and the sort picker are the SAME
+   widget: a button + caret shell that opens a custom .dd listbox. both
+   combos share this shell AND the .dd menu recipe below, so they look
+   identical open and closed, wherever they're used. */
+.combo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  height: var(--ctl-h);
+  min-height: var(--ctl-h);
+  padding: 0 var(--ctl-px);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.combo:hover {
+  border-color: var(--border-strong);
+}
+.combo.open {
+  border-color: var(--border-strong);
+}
+.combo:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.combo-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.combo-caret {
+  flex-shrink: 0;
+  color: var(--fg-3);
+}
+
+/* combo in a growing flex row (the mobile bar): the shell fills its wrapper,
+   so two combos split the bar 50/50 and long labels ellipsize instead of
+   shoving the sibling combo. .combo-wrap also anchors the .dd menu. */
+.combo-wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+.combo-wrap > .combo {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* shared dropdown — both combos open the SAME listbox: a positioned menu
+   of .dd-item rows (check + label [+ count]). lives next to .combo so the
+   folder and sort menus can never drift apart. */
+.dd {
+  position: absolute;
+  top: calc(100% + var(--s1));
+  left: 0;
+  min-width: 220px;
+  max-width: min(300px, calc(100vw - var(--s4)));
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  padding: var(--pad-xs);
+  z-index: 60;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.dd-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  width: 100%;
+  text-align: left;
+  padding: var(--pad-sm);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  min-height: var(--ctl-h);
+}
+.dd-item:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+.dd-item.active {
+  color: var(--fg);
+  background: var(--bg);
+}
+
+.dd-check {
+  width: 16px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-2);
+}
+
+.dd-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dd-count {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  flex-shrink: 0;
+}
+
+.dd-sep {
+  height: 1px;
+  background: var(--border);
+  margin: var(--pad-xs);
+}
+
+/* spinning icon — .spin is applied to shared Icon svgs (sync busy state).
+   global because the svg element is rendered by Icon.svelte, so a scoped
+   .spin selector in the caller would be dropped by the compiler. */
+.spin {
+  animation: folio-spin 0.9s linear infinite;
+  transform-origin: 50% 50%;
+}
+@keyframes folio-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* shared bar header — the sidebar header and the list header are the SAME
+   bar: --pad-bar padding around a --ctl-h control row. bars that hold
+   smaller content (the sidebar's 28px + button) still enforce the full bar
+   height via min-height. the +1px is the border-bottom: with border-box,
+   min-height must include it, otherwise the CONTENT box lands on
+   --ctl-h − 1px and bars with smaller content sit 1px short of bars with
+   full-size controls. this keeps every top bar in the app (this, plus the
+   note topbar which is naturally --ctl-h) edge-to-edge identical. */
+.bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: calc(var(--ctl-h) + var(--pad-bar) * 2 + 1px);
+  padding: var(--pad-bar);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* shared bar title — "folio" and the list heading ("notes"/"trash") are the
+   same text: same level, same size, same weight, same lowercase casing. */
+.bar-title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  text-transform: lowercase;
+}
+
+/* tiptap editor content — rendered inside .editor-wrap in the note view. the
+   selectors are global because the ProseMirror dom lives outside the svelte
+   component's scope; the .folio-editor prefix keeps them contained. */
+.editor-wrap .folio-editor {
+  max-width: var(--maxw-editor);
+  margin: 0 auto;
+  height: 100%;
+  outline: none;
+  line-height: 1.7;
+  word-break: break-word;
+  font-size: var(--fs-base);
+}
+
+.editor-wrap .folio-editor p {
+  margin-bottom: var(--gap-lg);
+}
+
+.editor-wrap .folio-editor h1,
+.editor-wrap .folio-editor h2,
+.editor-wrap .folio-editor h3,
+.editor-wrap .folio-editor h4 {
+  font-weight: 600;
+  margin: var(--s5) 0 var(--s3);
+  text-transform: lowercase;
+}
+
+.editor-wrap .folio-editor h1 {
+  font-size: var(--fs-2xl);
+}
+
+.editor-wrap .folio-editor h2 {
+  font-size: var(--fs-xl);
+}
+
+.editor-wrap .folio-editor h3 {
+  font-size: var(--fs-lg);
+}
+
+.editor-wrap .folio-editor h4 {
+  font-size: var(--fs-base);
+}
+
+.editor-wrap .folio-editor ul,
+.editor-wrap .folio-editor ol {
+  margin: var(--s2) 0 var(--s3) var(--s5);
+}
+
+.editor-wrap .folio-editor li {
+  margin-bottom: var(--s1);
+}
+
+.editor-wrap .folio-editor blockquote {
+  border-left: 3px solid var(--border-strong);
+  padding-left: var(--s4);
+  margin: var(--s3) 0;
+  color: var(--fg-2);
+}
+
+.editor-wrap .folio-editor pre {
+  margin: var(--s3) 0;
+  background: var(--code-bg);
+  border-radius: var(--r-sm);
+  padding: var(--s3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+
+.editor-wrap .folio-editor code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  border-radius: var(--r-sm);
+  padding: var(--pad-xs);
+}
+
+.editor-wrap .folio-editor pre code {
+  background: none;
+  padding: 0;
+}
+
+.editor-wrap .folio-editor img {
+  max-width: 100%;
+  border-radius: var(--r-md);
+  margin: var(--s3) 0;
+}
+
+.editor-wrap .folio-editor a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--fg-3);
+}
+
+.editor-wrap .folio-editor table {
+  border-collapse: collapse;
+  margin: var(--s3) 0;
+}
+
+.editor-wrap .folio-editor th,
+.editor-wrap .folio-editor td {
+  border: 1px solid var(--border);
+  padding: var(--pad-sm);
+  text-align: left;
+}
+
+.editor-wrap .folio-editor th {
+  background: var(--bg-2);
+  font-weight: 600;
+}
+
+.editor-wrap .folio-editor .file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s1);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--pad-xs);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  color: var(--fg);
+  vertical-align: middle;
+  margin: 0 var(--s1);
+  cursor: pointer;
+  transition:
+    background 0.1s ease,
+    border-color 0.1s ease;
+}
+
+.editor-wrap .folio-editor .file-chip:hover {
+  background: var(--bg-3);
+  border-color: var(--border-strong);
+}
+
+.editor-wrap .folio-editor .file-chip .file-chip-meta {
+  color: var(--fg-3);
+}
+
+.editor-wrap .folio-editor hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--s4) 0;
+}
+
+.editor-wrap .folio-editor ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.editor-wrap .folio-editor ul[data-type="taskList"] > li {
+  display: flex;
+  gap: var(--gap);
+  align-items: flex-start;
+}
+
+.editor-wrap .folio-editor ul[data-type="taskList"] li > label {
+  flex: 0 0 auto;
+  margin-top: var(--s1);
+  display: flex;
+}
+
+.editor-wrap .folio-editor ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.editor-wrap .folio-editor ul[data-type="taskList"] label span {
+  display: none;
+}
+
+.editor-wrap .folio-editor p.is-editor-empty:first-child::before,
+.editor-wrap .folio-editor p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--fg-3);
+  pointer-events: none;
+  height: 0;
+}
+
+.editor-wrap .folio-editor .selectedCell {
+  background: var(--selection-bg);
+}
+
+.editor-wrap .folio-editor [data-resize-container] {
+  max-width: 100%;
+}
+
+.editor-wrap .folio-editor [data-resize-wrapper] {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.editor-wrap .folio-editor [data-resize-wrapper] img {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+  border-radius: var(--r-md);
+  margin: var(--s3) 0;
+}
+
+.editor-wrap .folio-editor [data-resize-handle] {
+  width: 10px;
+  height: 10px;
+  background: var(--fg);
+  border: 1px solid var(--bg);
+  border-radius: 2px;
+  z-index: 5;
+}
+
+.editor-wrap .folio-editor [data-resize-handle="top-right"] {
+  margin-top: -5px;
+  margin-right: -5px;
+  cursor: nesw-resize;
+}
+
+.editor-wrap .folio-editor [data-resize-handle="bottom-right"] {
+  margin-bottom: -5px;
+  margin-right: -5px;
+  cursor: nwse-resize;
+}

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ SplashScreen bottom branding image. the platform places this
+     drawable centered in a 200dp x 80dp region at the bottom of the launch
+     splash (android:windowSplashScreenBrandingImage, API 31+ only — the
+     core-splashscreen compat library can't synthesize it below 31, so pre-12
+     devices show the solid-color splash with no wordmark, which is fine).
+
+     we keep the centered icon slot blank (folio_splash_icon_empty) so the only
+     thing on the splash is the solid background color + this "folio" wordmark
+     at the bottom — like WhatsApp (one clean splash, no launcher-icon circle,
+     no second activity). freeform text survives here because the branding slot
+     is rectangular, not circle-masked.
+
+     @drawable/folio_wordmark resolves per density (drawable-<dpi>/) and per
+     day/night mode (drawable-night-<dpi>/): dark text (#0f0f0f) for the light
+     splash, light text (#ffffff) for the dark splash. its intrinsic size is
+     124dp x 80dp (fit to the slot's full height), so it lands centered with
+     ~38dp side margins. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="center">
+        <bitmap
+            android:src="@drawable/folio_wordmark"
+            android:gravity="center" />
+    </item>
+</layer-list>

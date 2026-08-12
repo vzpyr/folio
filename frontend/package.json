@@ -1,0 +1,39 @@
+{
+  "name": "folio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "icons": "python3 ../scripts/generate-icons.py",
+    "dev": "vite",
+    "preview": "vite preview",
+    "test": "node scripts/backlinks.test.mjs && node scripts/export.test.mjs && node scripts/folders.test.mjs && node scripts/proxy-regression.test.mjs && node scripts/wysiwyg.test.mjs && node scripts/sync.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.0",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
+    "svelte": "^5.56.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  },
+  "dependencies": {
+    "@tiptap/core": "^3.30.0",
+    "@tiptap/extension-image": "^3.30.0",
+    "@tiptap/extension-link": "^3.30.0",
+    "@tiptap/extension-placeholder": "^3.30.0",
+    "@tiptap/extension-table": "^3.30.0",
+    "@tiptap/extension-table-cell": "^3.30.0",
+    "@tiptap/extension-table-header": "^3.30.0",
+    "@tiptap/extension-table-row": "^3.30.0",
+    "@tiptap/extension-task-item": "^3.30.0",
+    "@tiptap/extension-task-list": "^3.30.0",
+    "@tiptap/extension-underline": "^3.30.0",
+    "@tiptap/starter-kit": "^3.30.0",
+    "fflate": "^0.8.3",
+    "tiptap-markdown": "^0.9.0"
+  }
+}

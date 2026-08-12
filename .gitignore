@@ -1,0 +1,9 @@
+.ruff_cache/
+frontend/dist/
+frontend/node_modules/
+server/target/
+src-tauri/gen/schemas/
+src-tauri/target/
+docker/.env
+docker/docker-compose.yml
+todo.md
