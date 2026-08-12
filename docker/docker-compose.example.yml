@@ -1,10 +1,7 @@
 services:
   folio:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
+    image: ghcr.io/vzpyr/folio-server:latest
     container_name: folio
-    image: folio
     env_file: .env
     ports:
       - "${FOLIO_HOST_PORT:-8080}:${FOLIO_PORT:-8080}"
