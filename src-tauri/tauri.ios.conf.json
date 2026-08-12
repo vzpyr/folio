@@ -1,0 +1,12 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "folio",
+        "width": 480,
+        "height": 900,
+        "resizable": true
+      }
+    ]
+  }
+}

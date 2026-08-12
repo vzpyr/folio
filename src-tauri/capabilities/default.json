@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "windows": ["main"],
-  "platforms": ["windows", "linux"],
+  "platforms": ["windows", "linux", "macOS"],
   "permissions": [
     "core:default",
     "dialog:default",

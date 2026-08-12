@@ -36,7 +36,7 @@ android {
     }
 
     defaultConfig {
-        manifestPlaceholders["usesCleartextTraffic"] = "false"
+        manifestPlaceholders["usesCleartextTraffic"] = "true"
         applicationId = "com.vzpyr.folio"
         minSdk = 24
         targetSdk = 36

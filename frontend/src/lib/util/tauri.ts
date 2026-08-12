@@ -74,8 +74,18 @@ export function isAndroid(): boolean {
   );
 }
 
+export function isIOS(): boolean {
+  if (!isTauri() || typeof navigator === "undefined") return false;
+  const platform = navigator.platform || "";
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    /iPhone|iPad|iPod/i.test(platform) ||
+    (platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export function isDesktop(): boolean {
-  return isTauri() && !isAndroid();
+  return isTauri() && !isAndroid() && !isIOS();
 }
 
 export async function invoke(

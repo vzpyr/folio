@@ -2,6 +2,7 @@
 frontend/dist/
 frontend/node_modules/
 server/target/
+src-tauri/gen/apple/
 src-tauri/gen/schemas/
 src-tauri/target/
 docker/.env
