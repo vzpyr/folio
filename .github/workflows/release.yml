@@ -64,6 +64,23 @@ jobs:
           fi
           cargo tauri build --bundles $BUNDLES $args
 
+      - name: Rename
+        shell: bash
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          cd src-tauri/target
+          while IFS= read -r f; do
+            d="${f%/*}"
+            case "$f" in
+              *.deb) mv "$f" "$d/folio-${VERSION#v}-amd64.deb" ;;
+              *.rpm) mv "$f" "$d/folio-${VERSION#v}-x86_64.rpm" ;;
+              *.AppImage) mv "$f" "$d/folio-${VERSION#v}-x86_64.AppImage" ;;
+              *setup.exe) mv "$f" "$d/folio-${VERSION#v}-x64-setup.exe" ;;
+              *.dmg) mv "$f" "$d/folio-${VERSION#v}-universal.dmg" ;;
+            esac
+          done < <(find . -path '*/bundle/*/*' -type f \( -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.exe' -o -name '*.dmg' \))
+
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
@@ -131,6 +148,11 @@ jobs:
       - name: Build
         run: cargo tauri android build --apk --ci
 
+      - name: Rename
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: mv src-tauri/gen/android/app/build/outputs/apk/release/*.apk src-tauri/gen/android/app/build/outputs/apk/release/folio-${VERSION#v}-universal.apk
+
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
@@ -181,6 +203,13 @@ jobs:
       - name: Build
         run: cargo tauri ios build --no-sign --ci
 
+      - name: Rename
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          f=$(find src-tauri/gen/apple/build -name '*.ipa' | head -1)
+          mv "$f" "${f%/*}/folio-${VERSION#v}.ipa"
+
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
@@ -223,3 +252,24 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  checksums:
+    runs-on: ubuntu-latest
+    needs: [build, android, ios]
+    steps:
+      - name: Checksums
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p assets
+          cd assets
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern 'folio-*'
+          rm -f *SHA256SUMS
+          sha256sum folio-* > "folio-${GITHUB_REF_NAME#v}-SHA256SUMS"
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: assets/folio-*-SHA256SUMS
+          draft: true
+          generate_release_notes: true
