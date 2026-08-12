@@ -571,6 +571,67 @@ a,
   margin: var(--s3) 0;
 }
 
+.editor-wrap .folio-editor .math {
+  cursor: pointer;
+}
+
+.editor-wrap .folio-editor .math:hover {
+  outline: 1px dashed var(--border);
+  outline-offset: 1px;
+  border-radius: var(--r-sm);
+}
+
+.editor-wrap .folio-editor .math-block {
+  display: flex;
+  justify-content: center;
+  margin: var(--s3) 0;
+  overflow-x: auto;
+}
+
+.editor-wrap .folio-editor .math-display {
+  display: inline-block;
+}
+
+.editor-wrap .folio-editor .math-error {
+  color: var(--g7);
+}
+
+.editor-wrap .folio-editor .math-input {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  background: var(--code-bg);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  padding: var(--pad-sm);
+  resize: vertical;
+}
+
+.editor-wrap .folio-editor .math-inline .math-input {
+  width: 12em;
+  resize: none;
+}
+
+.editor-wrap .folio-editor .math-block .math-input {
+  width: 100%;
+  min-height: var(--s5);
+}
+
+.editor-wrap .folio-editor .math-input:focus {
+  outline: var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.editor-wrap .folio-editor .math-editing .math-display {
+  display: none;
+}
+
+.editor-wrap .folio-editor .math-editing .math-input {
+  display: block;
+}
+
 .editor-wrap .folio-editor a {
   color: var(--fg);
   text-decoration: underline;

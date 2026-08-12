@@ -20,6 +20,7 @@ import type { EditorState, Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { handlePaste, handleDrop, uploadFile } from "./attachments.ts";
 import { FootnoteRef, FootnoteDef, jumpToFootnoteDef } from "./footnote.ts";
+import { InlineMath, BlockMath } from "./math.ts";
 import { formatBytes } from "../util/format.ts";
 import type { VaultStore, NoteIndex } from "../store/store.svelte.ts";
 
@@ -539,6 +540,8 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
       }),
       FootnoteRef,
       FootnoteDef,
+      InlineMath,
+      BlockMath,
       Placeholder.configure({ placeholder: "write…" }),
       WikiLink,
       Markdown.configure({
@@ -719,6 +722,8 @@ export const editorExtensions = {
   UnderlineMark,
   FootnoteRef,
   FootnoteDef,
+  InlineMath,
+  BlockMath,
 };
 
 export type { Editor as TiptapEditor } from "@tiptap/core";

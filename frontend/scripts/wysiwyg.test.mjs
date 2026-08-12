@@ -86,12 +86,106 @@ const cases = [
     "# title\n\nsome **bold** and *italic* with a [link](https://x.io)\n\n- [ ] task\n- item\n\n| h |\n| --- |\n| v |\n\nsee [[Other|other note]] and <u>underlined</u>",
     "collapse",
   ],
+  ["inline math", "a $x^2 + y^2$ b"],
+  ["block math", "$$\nE = mc^2\n$$"],
+  ["block math multiline content", "$$\n\\int_0^1 x dx\n$$"],
+  ["math with escaped dollar", "a $x\\$y$ b"],
+  ["math next to wiki link", "see [[Target]] and $x$"],
+  ["math inside code stays literal", "`$x$` stays code"],
+  ["math inside fence stays literal", "```\n$x$\n```"],
+  ["currency amount stays text", "cost is $5 and $10"],
 ];
 for (const [name, md, mode] of cases) {
   const out = roundtrip(md);
   const eq =
     mode === "collapse" ? (s) => norm(s).replace(/\n{2,}/g, "\n") : norm;
   check(`roundtrip: ${name}`, eq(out) === eq(md), JSON.stringify(out));
+}
+
+{
+  const ed = build("");
+  setBody(ed, "a $x$ b");
+  const kinds = ed.state.doc.toJSON().content[0].content.map((c) => c.type);
+  const latex = ed.state.doc.toJSON().content[0].content[1].attrs.latex;
+  ed.destroy();
+  check(
+    "inline math parses into a node",
+    kinds.join(",") === "text,inlineMath,text" && latex === "x",
+    JSON.stringify({ kinds, latex }),
+  );
+}
+
+{
+  const ed = build("");
+  setBody(ed, "$$\nE = mc^2\n$$");
+  const kinds = ed.state.doc.toJSON().content.map((n) => n.type);
+  const latex = ed.state.doc.toJSON().content[0].attrs.latex;
+  ed.destroy();
+  check(
+    "block math parses into a node",
+    kinds[0] === "blockMath" && latex === "E = mc^2",
+    JSON.stringify({ kinds, latex }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("$x^2$", 1);
+  tr.setMeta("applyInputRules", { from: 1, text: "$x^2$" });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const kinds = ed.state.doc.toJSON().content[0].content.map((c) => c.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typing '$x^2$' converts to inline math",
+    kinds.join(",") === "inlineMath" && out === "$x^2$",
+    JSON.stringify({ kinds, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("$$", 1);
+  tr.setMeta("applyInputRules", { from: 1, text: "$$" });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const kinds = ed.state.doc.toJSON().content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typing '$$' at line start converts to block math",
+    kinds[0] === "blockMath" && out === "$$\n$$",
+    JSON.stringify({ kinds, out }),
+  );
+}
+
+{
+  const ed = build("");
+  setBody(ed, "$$\nx\n$$");
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "single-line block math canonicalizes to multiline",
+    norm(out) === "$$\nx\n$$",
+    JSON.stringify(out),
+  );
+}
+
+{
+  const ed = build("");
+  setBody(ed, "$ x $ and $x $ and $x$5 and $5.99");
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "space and digit rules keep invalid math as text",
+    norm(out) === "$ x $ and $x $ and $x$5 and $5.99",
+    JSON.stringify(out),
+  );
 }
 
 {
