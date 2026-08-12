@@ -151,7 +151,9 @@ jobs:
       - name: Rename
         env:
           VERSION: ${{ github.ref_name }}
-        run: mv src-tauri/gen/android/app/build/outputs/apk/release/*.apk src-tauri/gen/android/app/build/outputs/apk/release/folio-${VERSION#v}-universal.apk
+        run: |
+          f=$(find src-tauri/gen/android/app/build/outputs -name '*.apk' | head -1)
+          mv "$f" "${f%/*}/folio-${VERSION#v}-universal.apk"
 
       - name: Upload
         uses: softprops/action-gh-release@v2
