@@ -80,3 +80,7 @@ export const insertWikiLink =
   (e: Editor): void => {
     e.chain().focus().insertWikiLink(target, alias).run();
   };
+
+export const addFootnote = (e: Editor): void => {
+  e.chain().focus().insertFootnote().run();
+};

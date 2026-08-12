@@ -1,4 +1,5 @@
-import { Editor, Node } from "@tiptap/core";
+import { Editor, Node, InputRule } from "@tiptap/core";
+import { findWrapping } from "@tiptap/pm/transform";
 import StarterKit from "@tiptap/starter-kit";
 import BulletList from "@tiptap/extension-bullet-list";
 import OrderedList from "@tiptap/extension-ordered-list";
@@ -18,6 +19,7 @@ import { TextSelection } from "@tiptap/pm/state";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { handlePaste, handleDrop, uploadFile } from "./attachments.ts";
+import { FootnoteRef, FootnoteDef, jumpToFootnoteDef } from "./footnote.ts";
 import { formatBytes } from "../util/format.ts";
 import type { VaultStore, NoteIndex } from "../store/store.svelte.ts";
 
@@ -50,6 +52,9 @@ const TightOrderedList = OrderedList.extend({
 });
 
 const TightTaskList = TaskList.extend({
+  addInputRules() {
+    return [taskListInputRule];
+  },
   addAttributes() {
     return {
       tight: {
@@ -71,6 +76,33 @@ const TightTaskList = TaskList.extend({
         priority: 51,
       },
     ];
+  },
+});
+
+const taskListInputRule = new InputRule({
+  find: /^\s*([-+*])\s\[([ xX])\]\s$/,
+  handler: ({ state, range, match }) => {
+    const checked = match[2].toLowerCase() === "x";
+    const tr = state.tr.delete(range.from, range.to);
+    const $start = tr.doc.resolve(range.from);
+    const blockRange = $start.blockRange();
+    const wrapping =
+      blockRange && findWrapping(blockRange, state.schema.nodes.taskList);
+    if (!wrapping) return null;
+
+    tr.wrap(blockRange, wrapping);
+
+    let itemPos: number | null = null;
+    tr.doc.nodesBetween(range.from, tr.doc.content.size, (node, pos) => {
+      if (itemPos === null && node.type.name === "taskItem") {
+        itemPos = pos;
+
+        return false;
+      }
+
+      return true;
+    });
+    if (itemPos !== null) tr.setNodeMarkup(itemPos, undefined, { checked });
   },
 });
 
@@ -113,6 +145,11 @@ const FolioImage = Image.extend({
         renderHTML: (attrs) =>
           attrs.width ? { width: String(attrs.width) } : {},
       },
+      title: {
+        default: null,
+        parseHTML: (el) => el.getAttribute("title") || null,
+        renderHTML: (attrs) => (attrs.title ? { title: attrs.title } : {}),
+      },
     };
   },
   addStorage() {
@@ -126,26 +163,30 @@ const FolioImage = Image.extend({
               ref?: string | null;
               src?: string;
               width?: number | null;
+              title?: string | null;
             };
           },
         ) {
-          if (node.attrs.width) {
-            const src = node.attrs.ref || node.attrs.src || "";
-            const alt = (node.attrs.alt || "").replace(/"/g, "&quot;");
+          const src = node.attrs.ref || node.attrs.src || "";
+          const alt = (node.attrs.alt || "").replace(/"/g, "&quot;");
+          const title = node.attrs.title
+            ? ` title="${String(node.attrs.title).replace(/"/g, "&quot;")}"`
+            : "";
+          const titleMd = node.attrs.title
+            ? ` "${String(node.attrs.title).replace(/"/g, "&quot;")}"`
+            : "";
 
+          if (node.attrs.width) {
             state.write(
-              `<img src="${src}" width="${node.attrs.width}" alt="${alt}">`,
+              `<img src="${src}" width="${node.attrs.width}" alt="${alt}"${title}>`,
             );
 
             return;
           }
 
-          const src = (node.attrs.ref || node.attrs.src || "").replace(
-            /[()]/g,
-            "\\$&",
+          state.write(
+            `![${state.esc(alt)}](${src.replace(/[()]/g, "\\$&")}${titleMd})`,
           );
-
-          state.write(`![${state.esc(node.attrs.alt || "")}](${src})`);
         },
       } satisfies MarkdownNodeSpec,
     };
@@ -496,6 +537,8 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         linkOnPaste: true,
         validate: isSafeHref,
       }),
+      FootnoteRef,
+      FootnoteDef,
       Placeholder.configure({ placeholder: "write…" }),
       WikiLink,
       Markdown.configure({
@@ -520,6 +563,14 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         if (target?.closest?.("a.wiki-link")) {
           const href = target.closest("a.wiki-link")?.getAttribute("data-wiki");
           if (href) opts.onWikiClick?.(href);
+
+          return true;
+        }
+
+        if (target?.closest?.("sup.footnote-ref")) {
+          const sup = target.closest("sup.footnote-ref");
+          const label = sup?.getAttribute("data-label");
+          if (label) jumpToFootnoteDef(editor, label);
 
           return true;
         }
@@ -566,6 +617,13 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         if (mod && event.key === "Enter") {
           event.preventDefault();
           editor.chain().focus().toggleTaskList().run();
+
+          return true;
+        }
+
+        if (mod && event.shiftKey && event.key.toLowerCase() === "f") {
+          event.preventDefault();
+          editor.chain().focus().insertFootnote().run();
 
           return true;
         }
@@ -659,6 +717,8 @@ export const editorExtensions = {
   FileChip,
   WikiLink,
   UnderlineMark,
+  FootnoteRef,
+  FootnoteDef,
 };
 
 export type { Editor as TiptapEditor } from "@tiptap/core";

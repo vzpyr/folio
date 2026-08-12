@@ -47,6 +47,47 @@ function normalizeRef(ref: string): string {
   return attachmentDir(r)?.key ?? r;
 }
 
+function transformOutsideFences(
+  body: string,
+  fn: (line: string) => string,
+): string {
+  const lines = body.split("\n");
+  let inFence = false;
+  const out: string[] = [];
+
+  for (const line of lines) {
+    if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+    out.push(inFence ? line : fn(line));
+  }
+
+  return out.join("\n");
+}
+
+function normalizeAffineEscapes(body: string): string {
+  return transformOutsideFences(body, (line) =>
+    line.startsWith("&#x20;") ? line.replace(/&#x20;/g, " ") : line,
+  );
+}
+
+function normalizeContent(text: string): string {
+  return normalizeAffineEscapes(text.replace(/\r\n/g, "\n"));
+}
+
+export function parseMarkdownFile(name: string, text: string): ParsedImport {
+  const rel = name
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "");
+  const path = /\.md$/i.test(rel) ? rel : `${rel}.md`;
+
+  return {
+    notes: [
+      { path, folder: folderFor(path), content: normalizeContent(text) },
+    ],
+    attachments: new Map(),
+  };
+}
+
 export function parseImportSource(bytes: Uint8Array): ParsedImport {
   const entries = unzip(bytes);
   const notes: RawNote[] = [];
@@ -66,7 +107,7 @@ export function parseImportSource(bytes: Uint8Array): ParsedImport {
       notes.push({
         path: rel,
         folder: folderFor(rel),
-        content: dec.decode(data).replace(/\r\n/g, "\n"),
+        content: normalizeContent(dec.decode(data)),
       });
     } else if (attachmentDir(rel)) {
       attachments.set(rel, Uint8Array.from(data));
@@ -92,8 +133,24 @@ function titleFromPath(path: string): string {
   return sanitizeFileName(base.replace(/\.md$/i, "") || "untitled");
 }
 
+function headingTitle(body: string): string {
+  const h = body.match(/^#\s+(.+)$/m);
+
+  return h ? h[1].trim() : "";
+}
+
 const EMBED_RE = /!\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g;
 const IMG_REF_RE = /!\[([^\]]*)\]\(([^)]+)\)/g;
+const LINK_REF_RE = /\[([^\]]+)\]\(([^)]+)\)/g;
+
+function splitRef(refWithTitle: string): { ref: string; title: string | null } {
+  const m = /^(.+?)(?:\s+"([^"]*)")?$/.exec(refWithTitle);
+
+  return {
+    ref: (m?.[1] ?? refWithTitle).trim(),
+    title: m?.[2] ?? null,
+  };
+}
 
 function rewriteRefs(
   body: string,
@@ -111,13 +168,102 @@ function rewriteRefs(
     },
   );
 
-  out = out.replace(IMG_REF_RE, (all, alt: string, ref: string) => {
+  out = out.replace(IMG_REF_RE, (all, alt: string, refWithTitle: string) => {
+    const { ref, title } = splitRef(refWithTitle);
     const rec = byRef.get(normalizeRef(ref));
+    if (!rec) return all;
 
-    return rec ? `![${alt}](assets/${rec.id}.${rec.ext})` : all;
+    const name = ref.split("/").pop() ?? "";
+    const altOut = alt && alt !== name ? alt : "";
+    const titleOut = title ? ` "${title}"` : "";
+
+    return `![${altOut}](assets/${rec.id}.${rec.ext}${titleOut})`;
+  });
+
+  out = out.replace(LINK_REF_RE, (all, text: string, refWithTitle: string) => {
+    const { ref, title } = splitRef(refWithTitle);
+    const rec = byRef.get(normalizeRef(ref));
+    if (!rec) return all;
+
+    return `[${text}](assets/${rec.id}.${rec.ext}${title ? ` "${title}"` : ""})`;
   });
 
   return out;
+}
+
+interface AffineFootnoteDef {
+  type?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+  fileName?: string;
+  fileType?: string;
+  blobId?: string;
+}
+
+const FOOTNOTE_DEF_RE = /^\[\^([\w-]+)\]:\s*(\{.*\})\s*$/;
+const FOOTNOTE_REF_RE = /\[\^([\w-]+)\]/g;
+
+function convertAffineFootnotes(
+  body: string,
+  byBaseId: Map<string, { id: string; ext: string }>,
+): string {
+  const defs = new Map<string, AffineFootnoteDef>();
+
+  const stripped = transformOutsideFences(body, (line) => {
+    const m = FOOTNOTE_DEF_RE.exec(line);
+    if (!m) return line;
+
+    let data: AffineFootnoteDef;
+    try {
+      data = JSON.parse(m[2]) as AffineFootnoteDef;
+    } catch {
+      return line;
+    }
+
+    if (data.type !== "url" && data.type !== "attachment") return line;
+    defs.set(m[1], data);
+
+    return "";
+  });
+
+  if (defs.size === 0) return body;
+
+  return transformOutsideFences(stripped, (line) =>
+    line.replace(FOOTNOTE_REF_RE, (all, label: string) => {
+      const data = defs.get(label);
+      if (!data) return all;
+
+      if (data.type === "url") {
+        let url = data.url ?? "";
+        try {
+          url = decodeURIComponent(url);
+        } catch {
+          url = data.url ?? "";
+        }
+        if (!url) return all;
+
+        const title = (data.title || url).replace(/[[\]]/g, "");
+        const desc = data.description
+          ? ` "${data.description.replace(/"/g, "&quot;")}"`
+          : "";
+
+        return `[${title}](${url.replace(/[()]/g, "\\$&")}${desc})`;
+      }
+
+      if (data.type === "attachment") {
+        const rec = data.blobId ? byBaseId.get(data.blobId) : undefined;
+        if (!rec) return all;
+
+        const name = (data.fileName || "file").replace(/[[\]]/g, "");
+        const mime = data.fileType ? ` "${data.fileType}"` : "";
+
+        return `[${name}](assets/${rec.id}.${rec.ext}${mime})`;
+      }
+
+      return all;
+    }),
+  );
 }
 
 export async function applyImport(
@@ -129,6 +275,7 @@ export async function applyImport(
   const usedNow = new Set<string>();
   const byRef = new Map<string, { id: string; ext: string }>();
   const byName = new Map<string, { id: string; ext: string }>();
+  const byBaseId = new Map<string, { id: string; ext: string }>();
 
   for (const path of parsed.attachments.keys()) {
     const dir = attachmentDir(path);
@@ -140,6 +287,9 @@ export async function applyImport(
     const rec = { id: crypto.randomUUID(), ext: extOf(name) };
     byRef.set(dir.key, rec);
     if (!byName.has(name)) byName.set(name, rec);
+
+    const base = name.replace(/\.[^.]+$/, "");
+    if (base && base !== name && !byBaseId.has(base)) byBaseId.set(base, rec);
   }
 
   const now = Date.now();
@@ -152,7 +302,7 @@ export async function applyImport(
   for (const raw of parsed.notes) {
     const { meta: fm, body: rawBody } = parseFrontmatter(raw.content);
     const titleFromFm = fm.title?.trim() || "";
-    let title = titleFromFm || titleFromPath(raw.path);
+    let title = titleFromFm || headingTitle(rawBody) || titleFromPath(raw.path);
     let folder = fm.folder || raw.folder;
     const hasId = !!fm.id;
 
@@ -170,7 +320,10 @@ export async function applyImport(
       }
     }
 
-    const body = rewriteRefs(rawBody, byRef, byName);
+    const body = convertAffineFootnotes(
+      rewriteRefs(rawBody, byRef, byName),
+      byBaseId,
+    );
     const meta: NoteMeta = {
       id,
       title,

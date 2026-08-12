@@ -577,6 +577,33 @@ a,
   text-decoration-color: var(--fg-3);
 }
 
+.editor-wrap .folio-editor sup.footnote-ref a {
+  color: var(--fg-2);
+  text-decoration: none;
+  font-size: 0.75em;
+  vertical-align: super;
+  cursor: pointer;
+  margin: 0 var(--s1);
+}
+
+.editor-wrap .folio-editor sup.footnote-ref a:hover {
+  color: var(--fg);
+  text-decoration: underline;
+}
+
+.editor-wrap .folio-editor .footnote-def {
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  border-top: 1px solid var(--border);
+  padding-top: var(--pad-sm);
+  margin-top: var(--s5);
+}
+
+.editor-wrap .folio-editor .footnote-def-flash {
+  background: var(--bg-3);
+  border-radius: var(--r-sm);
+}
+
 .editor-wrap .folio-editor table {
   border-collapse: collapse;
   margin: var(--s3) 0;

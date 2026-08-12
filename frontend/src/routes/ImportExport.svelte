@@ -1,7 +1,7 @@
 <script lang="ts">
   import { appState } from "../app.svelte.ts";
   import { buildExportZip } from "../lib/io/export.ts";
-  import { parseImportSource, applyImport } from "../lib/io/import.ts";
+  import { parseImportSource, parseMarkdownFile, applyImport } from "../lib/io/import.ts";
   import type { ImportResult } from "../lib/io/import.ts";
   import Icon from "../lib/components/Icon.svelte";
   import { untrack } from "svelte";
@@ -27,9 +27,12 @@
   function pickFile(f: File | null) {
     if (!f) return;
 
-    if (!f.name.toLowerCase().endsWith(".zip")) {
+    if (
+      !f.name.toLowerCase().endsWith(".zip") &&
+      !f.name.toLowerCase().endsWith(".md")
+    ) {
       error =
-        "please choose a .zip file — folder import isn't available on web";
+        "please choose a .zip or .md file — folder import isn't available on web";
       file = null;
 
       return;
@@ -57,7 +60,9 @@
 
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const parsed = parseImportSource(bytes);
+      const parsed = file.name.toLowerCase().endsWith(".md")
+        ? parseMarkdownFile(file.name, new TextDecoder().decode(bytes))
+        : parseImportSource(bytes);
       const res = await applyImport(store, index, parsed);
 
       result = res;
@@ -145,18 +150,22 @@
             pickFile(e.dataTransfer?.files?.[0] ?? null);
           }}
         >
-          <p>drop a zip file here</p>
+          <p>drop a zip or .md file here</p>
           <p class="hint">or</p>
           <label class="file-btn">
             choose file
             <input
               type="file"
-              accept=".zip"
+              accept=".zip,.md"
               hidden
               onchange={(e) => pickFile(e.currentTarget.files?.[0] ?? null)}
             />
           </label>
         </div>
+        <p class="hint">
+          affine markdown exports (zip with index.md + assets, or a bare .md)
+          work too
+        </p>
         {#if file}
           <p class="file-name">{file.name}</p>
         {/if}

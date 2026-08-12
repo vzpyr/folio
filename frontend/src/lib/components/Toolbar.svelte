@@ -16,6 +16,7 @@
     undo,
     redo,
     insertHr,
+    addFootnote,
   } from "../editor/toolbar.ts";
   import { insertTable } from "../editor/editor.ts";
   import type { FmtState } from "../editor/toolbar.ts";
@@ -122,6 +123,9 @@
   <span class="toolbar-sep"></span>
   <button title="link" onclick={onLinkPrompt}
     ><Icon name="link-2" size={16} /></button
+  >
+  <button title="footnote (ctrl/⌘+shift+f)" onclick={() => run(addFootnote)}
+    ><Icon name="footnote" size={16} /></button
   >
   {@render children?.()}
   <button title="insert image or file" onclick={onPickAttachment}

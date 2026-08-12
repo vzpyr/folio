@@ -58,7 +58,19 @@ const cases = [
   ["blockquote", "> quote\n\n> more"],
   ["code block with lang", "```js\nconst x = 1;\n```"],
   ["gfm table", "| a | b |\n| --- | --- |\n| 1 | 2 |"],
+  [
+    "footnote",
+    "text[^1] and more[^2]\n\n[^1]: first note\n\n[^2]: second **bold** note",
+  ],
+  [
+    "footnote ref inside code stays literal",
+    "literal `[^3]` stays",
+  ],
   ["image ref", "![alt](assets/abc-123.png)"],
+  [
+    "image with title (caption)",
+    '![alt](assets/abc-123.png "caption text")',
+  ],
   [
     "image with width (inline html)",
     '<img src="assets/abc-123.png" width="400" alt="alt">',
@@ -84,12 +96,77 @@ for (const [name, md, mode] of cases) {
 
 {
   const ed = build("");
+  setBody(ed, "text[^1]\n\n[^1]: the note");
+  const json = ed.state.doc.toJSON();
+  const inlineKinds = json.content.flatMap((n) =>
+    n.content ? n.content.map((c) => c.type) : [],
+  );
+  const blockKinds = json.content.map((n) => n.type);
+  ed.destroy();
+  check(
+    "footnote parses into ref + def nodes",
+    inlineKinds.includes("footnoteRef") && blockKinds.includes("footnoteDef"),
+    JSON.stringify({ inlineKinds, blockKinds }),
+  );
+}
+
+{
+  const ed = build("");
   ed.commands.insertContent("see [[x]]");
   const out = getMarkdown(ed);
   ed.destroy();
   check(
     "typed [[x]] stays literal",
     norm(out) === "see [[x]]",
+    JSON.stringify(out),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("- [ ] ", 1);
+  tr.setMeta("applyInputRules", { from: 1, text: "- [ ] " });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const types = ed.state.doc.toJSON().content.map((n) => n.type);
+  const checked = ed.state.doc.toJSON().content[0].content[0].attrs.checked;
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typing '- [ ] ' creates a task list",
+    types.includes("taskList") && checked === false && out === "- [ ] ",
+    JSON.stringify({ types, checked, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("- [x] ", 1);
+  tr.setMeta("applyInputRules", { from: 1, text: "- [x] " });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const checked = ed.state.doc.toJSON().content[0].content[0].attrs.checked;
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typing '- [x] ' creates a checked task",
+    checked === true && out === "- [x] ",
+    JSON.stringify({ checked, out }),
+  );
+}
+
+{
+  const ed = build("");
+  ed.chain().focus().insertFootnote().run();
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "insert footnote writes ref + def",
+    out.includes("[^1]") && out.includes("[^1]: "),
     JSON.stringify(out),
   );
 }
