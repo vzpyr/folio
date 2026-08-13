@@ -3,23 +3,37 @@ import { parseFrontmatter, writeFrontmatter } from "../editor/markdown.ts";
 import { sanitizeFileName, sanitizeFolderPath } from "./export.ts";
 import { unzip } from "./zip.ts";
 import { isFolderRegistryId } from "../store/folders.ts";
+import { parseEnexEntries } from "./enex.ts";
 
-interface RawNote {
+export { parseEnexFile } from "./enex.ts";
+
+export interface RawNote {
   path: string;
   folder: string;
   content: string;
 }
 
-interface ParsedImport {
+export interface ParsedImport {
   notes: RawNote[];
   attachments: Map<string, Uint8Array<ArrayBuffer>>;
+  source?: ImportSource;
 }
+
+export type ImportSource =
+  "auto" | "markdown" | "affine" | "notion" | "obsidian" | "keep" | "evernote";
 
 export interface ImportResult {
   notes: number;
   atts: number;
   skipped: number;
   collisions: string[];
+}
+
+function isSkippedPath(rel: string): boolean {
+  if (rel === "" || rel.endsWith("/") || rel.startsWith("__MACOSX/"))
+    return true;
+
+  return rel.split("/").some((seg) => seg.startsWith("."));
 }
 
 function attachmentDir(path: string): { key: string } | null {
@@ -83,8 +97,42 @@ export function parseMarkdownFile(name: string, text: string): ParsedImport {
   };
 }
 
-export function parseImportSource(bytes: Uint8Array): ParsedImport {
+export function detectImportSource(
+  entries: Record<string, Uint8Array>,
+): ImportSource {
+  const names = Object.keys(entries);
+  const has = (re: RegExp) => names.some((n) => re.test(n));
+
+  if (has(/\.enex$/i)) return "evernote";
+  if (has(/(?:^|\/)Keep\/[^/]+\.json$/i)) return "keep";
+  if (has(/(?:^|\/)\.obsidian(?:\/|$)/)) return "obsidian";
+  if (has(/ [0-9a-f]{8,32}\.md$/i)) return "notion";
+  if (has(/(?:^|\/)index\.md$/) && has(/(?:^|\/)assets\//)) return "affine";
+
+  return "markdown";
+}
+
+export function detectImportFile(bytes: Uint8Array): ImportSource {
+  return detectImportSource(unzip(bytes));
+}
+
+export function parseImportSource(
+  bytes: Uint8Array,
+  source: ImportSource = "auto",
+): ParsedImport {
   const entries = unzip(bytes);
+  const resolved = source === "auto" ? detectImportSource(entries) : source;
+
+  if (resolved === "keep") return parseKeepImport(entries);
+  if (resolved === "evernote") return parseEnexEntries(entries);
+
+  return parseMarkdownZip(entries, resolved);
+}
+
+function parseMarkdownZip(
+  entries: Record<string, Uint8Array>,
+  source: ImportSource,
+): ParsedImport {
   const notes: RawNote[] = [];
   const attachments = new Map<string, Uint8Array<ArrayBuffer>>();
   const dec = new TextDecoder();
@@ -95,21 +143,195 @@ export function parseImportSource(bytes: Uint8Array): ParsedImport {
       .replace(/^\.\//, "")
       .replace(/^\/+/, "");
 
-    if (rel === "" || rel.endsWith("/") || rel.startsWith("__MACOSX/"))
-      continue;
+    if (isSkippedPath(rel)) continue;
 
     if (/\.md$/i.test(rel)) {
+      if (source === "notion" && /^index\.md$/i.test(rel)) continue;
+
       notes.push({
-        path: rel,
-        folder: folderFor(rel),
-        content: normalizeContent(dec.decode(data)),
+        path: source === "notion" ? notionCleanPath(rel) : rel,
+        folder: source === "notion" ? notionFolderFor(rel) : folderFor(rel),
+        content:
+          source === "notion"
+            ? rewriteNotionLinks(normalizeContent(dec.decode(data)))
+            : normalizeContent(dec.decode(data)),
       });
-    } else if (attachmentDir(rel)) {
+    } else if (
+      source === "obsidian" ||
+      source === "notion" ||
+      attachmentDir(rel)
+    ) {
+      if (source === "notion" && /\.(?:csv|html?)$/i.test(rel)) continue;
+
       attachments.set(rel, Uint8Array.from(data));
     }
   }
 
-  return { notes, attachments };
+  return { notes, attachments, source };
+}
+
+function stripNotionUuid(name: string): string {
+  return name.replace(/\s+[0-9a-f]{8,32}$/i, "");
+}
+
+function notionCleanPath(rel: string): string {
+  return rel
+    .split("/")
+    .map((seg) => {
+      const isMd = /\.md$/i.test(seg);
+      const base = seg.replace(/\.md$/i, "");
+      if (!isMd && /^[0-9a-f]{8,32}$/i.test(base)) return "";
+
+      const cleaned = stripNotionUuid(base);
+
+      return isMd ? `${cleaned}.md` : cleaned;
+    })
+    .filter(Boolean)
+    .join("/");
+}
+
+function notionFolderFor(rel: string): string {
+  const parts = notionCleanPath(rel).split("/");
+  parts.pop();
+
+  return sanitizeFolderPath(parts.join("/"));
+}
+
+function rewriteNotionLinks(body: string): string {
+  return body.replace(
+    /(!?)\[([^\]]+)\]\(([^)\s]+\.md)(?:\s+["'][^"']*["'])?\)/gi,
+    (_m, bang: string, text: string, href: string) => {
+      if (bang) return _m;
+
+      let target = href;
+      try {
+        target = decodeURIComponent(href);
+      } catch {
+        return _m;
+      }
+      if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(target)) return _m;
+
+      const base = target.split("/").pop() ?? "";
+      const title = stripNotionUuid(base.replace(/\.md$/i, "")).trim();
+      if (!title) return _m;
+
+      return title === text ? `[[${title}]]` : `[[${title}|${text}]]`;
+    },
+  );
+}
+
+interface KeepListContent {
+  text?: string;
+  isChecked?: boolean;
+}
+
+interface KeepAttachment {
+  name?: string;
+  mimetype?: string;
+}
+
+interface KeepNote {
+  title?: string;
+  textContent?: string;
+  listContent?: KeepListContent[];
+  labels?: { name?: string }[];
+  isPinned?: boolean;
+  isArchived?: boolean;
+  isTrashed?: boolean;
+  createdTimestampUsec?: number;
+  userEditedTimestampUsec?: number;
+  attachments?: KeepAttachment[];
+}
+
+const KEEP_JSON_RE = /(?:^|\/)Keep\/[^/]+\.json$/i;
+
+function parseKeepImport(entries: Record<string, Uint8Array>): ParsedImport {
+  const dec = new TextDecoder();
+  const paths = Object.keys(entries);
+
+  const jsonPaths = paths.filter((p) => KEEP_JSON_RE.test(p));
+  const keepFiles =
+    jsonPaths.length > 0
+      ? jsonPaths
+      : paths.filter((p) => /^[^/]+\.json$/i.test(p) && !isSkippedPath(p));
+
+  const filesByBase = new Map<string, { bytes: Uint8Array }>();
+  for (const p of paths) {
+    if (isSkippedPath(p)) continue;
+    if (/\.(?:json|html)$/i.test(p)) continue;
+
+    const base = p.split("/").pop() ?? "";
+    if (base && !filesByBase.has(base))
+      filesByBase.set(base, { bytes: entries[p] });
+  }
+
+  const notes: RawNote[] = [];
+  const attachments = new Map<string, Uint8Array<ArrayBuffer>>();
+
+  for (const p of keepFiles) {
+    let note: KeepNote;
+    try {
+      note = JSON.parse(dec.decode(entries[p])) as KeepNote;
+    } catch {
+      continue;
+    }
+    if (note.isTrashed) continue;
+
+    const text = note.textContent ?? "";
+    const title =
+      (note.title ?? "").trim() || text.split("\n")[0].trim() || "untitled";
+    let body = text;
+    if (title && body.startsWith(title)) {
+      body = body.slice(title.length).replace(/^\n+/, "");
+    }
+
+    const items = (note.listContent ?? [])
+      .filter((i) => typeof i.text === "string")
+      .map((i) => `- [${i.isChecked ? "x" : " "}] ${i.text}`)
+      .join("\n");
+    if (items) body = body ? `${body}\n\n${items}` : items;
+
+    const refs: string[] = [];
+    for (const att of note.attachments ?? []) {
+      const name = (att.name ?? "").split("/").pop() ?? "";
+      if (!name || !filesByBase.has(name)) continue;
+
+      const target = `assets/${name}`;
+      if (!attachments.has(target)) {
+        attachments.set(target, Uint8Array.from(filesByBase.get(name)!.bytes));
+      }
+      refs.push(`![${name}](assets/${name})`);
+    }
+    if (refs.length)
+      body = body ? `${body}\n\n${refs.join("\n\n")}` : refs.join("\n\n");
+
+    const labels = (note.labels ?? [])
+      .map((l) => l.name)
+      .filter((n): n is string => !!n);
+    const lines = ["---"];
+    lines.push(`title: ${title.replace(/\n/g, " ")}`);
+    if (note.createdTimestampUsec) {
+      lines.push(
+        `created: ${new Date(note.createdTimestampUsec / 1000).toISOString()}`,
+      );
+    }
+    if (note.userEditedTimestampUsec) {
+      lines.push(
+        `updated: ${new Date(note.userEditedTimestampUsec / 1000).toISOString()}`,
+      );
+    }
+    if (labels.length) lines.push(`tags: [${labels.join(", ")}]`);
+    if (note.isPinned) lines.push("pinned: true");
+    lines.push("---", "", body);
+
+    notes.push({
+      path: `${sanitizeFileName(title)}.md`,
+      folder: "",
+      content: lines.join("\n"),
+    });
+  }
+
+  return { notes, attachments, source: "keep" };
 }
 
 function folderFor(rel: string): string {
@@ -147,10 +369,43 @@ function splitRef(refWithTitle: string): { ref: string; title: string | null } {
   };
 }
 
+function refLookup(
+  ref: string,
+  byRef: Map<string, { id: string; ext: string }>,
+  byName: Map<string, { id: string; ext: string }>,
+): { id: string; ext: string } | null {
+  const direct = byRef.get(normalizeRef(ref));
+  if (direct) return direct;
+
+  const base = ref.split("/").pop() ?? "";
+  const byBase = byName.get(base);
+  if (byBase) return byBase;
+
+  const decoded = tryDecodeUri(ref);
+  if (decoded !== ref) {
+    const dec = byRef.get(normalizeRef(decoded));
+    if (dec) return dec;
+
+    const decBase = decoded.split("/").pop() ?? "";
+    return byName.get(decBase) ?? null;
+  }
+
+  return null;
+}
+
+function tryDecodeUri(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 function rewriteRefs(
   body: string,
   byRef: Map<string, { id: string; ext: string }>,
   byName: Map<string, { id: string; ext: string }>,
+  source?: ImportSource,
 ): string {
   let out = body.replace(
     EMBED_RE,
@@ -159,13 +414,15 @@ function rewriteRefs(
       const alt = (altPart ?? "").trim() || name;
       const rec = byName.get(name);
 
-      return rec ? `![${alt}](assets/${rec.id}.${rec.ext})` : name;
+      if (rec) return `![${alt}](assets/${rec.id}.${rec.ext})`;
+      if (source === "obsidian") return `[[${name}]]`;
+      return name;
     },
   );
 
   out = out.replace(IMG_REF_RE, (all, alt: string, refWithTitle: string) => {
     const { ref, title } = splitRef(refWithTitle);
-    const rec = byRef.get(normalizeRef(ref));
+    const rec = refLookup(ref, byRef, byName);
     if (!rec) return all;
 
     const name = ref.split("/").pop() ?? "";
@@ -177,7 +434,7 @@ function rewriteRefs(
 
   out = out.replace(LINK_REF_RE, (all, text: string, refWithTitle: string) => {
     const { ref, title } = splitRef(refWithTitle);
-    const rec = byRef.get(normalizeRef(ref));
+    const rec = refLookup(ref, byRef, byName);
     if (!rec) return all;
 
     return `[${text}](assets/${rec.id}.${rec.ext}${title ? ` "${title}"` : ""})`;
@@ -266,6 +523,13 @@ export async function applyImport(
   index: NoteIndex,
   parsed: ParsedImport,
 ): Promise<ImportResult> {
+  const attKey = (path: string): string | null => {
+    const dir = attachmentDir(path);
+    if (dir) return dir.key;
+    return parsed.source === "obsidian" || parsed.source === "notion"
+      ? path
+      : null;
+  };
   const existing = new Set((await store.listNotes()).map((n) => n.id));
   const usedNow = new Set<string>();
   const byRef = new Map<string, { id: string; ext: string }>();
@@ -273,14 +537,14 @@ export async function applyImport(
   const byBaseId = new Map<string, { id: string; ext: string }>();
 
   for (const path of parsed.attachments.keys()) {
-    const dir = attachmentDir(path);
-    if (!dir) continue;
+    const key = attKey(path);
+    if (!key) continue;
 
-    const name = dir.key.split("/").pop() ?? "";
+    const name = key.split("/").pop() ?? "";
     if (!name) continue;
 
     const rec = { id: crypto.randomUUID(), ext: extOf(name) };
-    byRef.set(dir.key, rec);
+    byRef.set(key, rec);
     if (!byName.has(name)) byName.set(name, rec);
 
     const base = name.replace(/\.[^.]+$/, "");
@@ -316,7 +580,7 @@ export async function applyImport(
     }
 
     const body = convertAffineFootnotes(
-      rewriteRefs(rawBody, byRef, byName),
+      rewriteRefs(rawBody, byRef, byName, parsed.source),
       byBaseId,
     );
     const meta: NoteMeta = {
@@ -351,10 +615,10 @@ export async function applyImport(
   }
 
   for (const [path, bytes] of parsed.attachments) {
-    const dir = attachmentDir(path);
-    if (!dir) continue;
+    const key = attKey(path);
+    if (!key) continue;
 
-    const rec = byRef.get(dir.key);
+    const rec = byRef.get(key);
     if (!rec) continue;
 
     await store.writeAttachment(rec.id, rec.ext, bytes);

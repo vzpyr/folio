@@ -2,8 +2,14 @@
   import { appState } from "../app.svelte.ts";
   import { buildExportZip, exportStamp } from "../lib/io/export.ts";
   import { saveFile } from "../lib/io/save.ts";
-  import { parseImportSource, parseMarkdownFile, applyImport } from "../lib/io/import.ts";
-  import type { ImportResult } from "../lib/io/import.ts";
+  import {
+    parseImportSource,
+    parseMarkdownFile,
+    parseEnexFile,
+    applyImport,
+    detectImportFile,
+  } from "../lib/io/import.ts";
+  import type { ImportResult, ImportSource } from "../lib/io/import.ts";
   import Icon from "../lib/components/Icon.svelte";
   import { untrack } from "svelte";
 
@@ -16,6 +22,9 @@
     untrack(() => props.initialTab) ?? "import",
   );
   let file: File | null = $state(null);
+  let cachedBytes: Uint8Array | null = $state(null);
+  let format = $state<ImportSource>("auto");
+  let formatManual = $state(false);
   let busy = $state(false);
   let importing = $state(false);
   let result: ImportResult | null = $state(null);
@@ -25,22 +34,61 @@
   let exportDone = $state("");
   let noteCount = $derived(appState.index?.list.length ?? 0);
 
-  function pickFile(f: File | null) {
+  const SOURCES: ImportSource[] = [
+    "auto",
+    "markdown",
+    "affine",
+    "notion",
+    "obsidian",
+    "keep",
+    "evernote",
+  ];
+  const FORMAT_HINTS: Record<ImportSource, string> = {
+    auto: "auto-detect the source from the file",
+    markdown: "generic markdown notes + assets",
+    affine: "affine export · index.md + assets",
+    notion: "notion export · pages, images & links · databases (csv) skipped",
+    obsidian: "obsidian vault · notes, wiki-links & attachments · plugins & canvas skipped",
+    keep: "google keep takeout · notes, lists, labels & images",
+    evernote: "evernote export (.enex) · notes, tags, images & files",
+  };
+
+  async function pickFile(f: File | null) {
     if (!f) return;
 
-    if (
-      !f.name.toLowerCase().endsWith(".zip") &&
-      !f.name.toLowerCase().endsWith(".md")
-    ) {
+    const lower = f.name.toLowerCase();
+    const isMd = lower.endsWith(".md");
+    const isEnex = lower.endsWith(".enex");
+    if (!isMd && !isEnex && !lower.endsWith(".zip")) {
       error =
-        "please choose a .zip or .md file — folder import isn't available on web";
+        "please choose a .zip, .md or .enex file — folder import isn't available on web";
       file = null;
+      cachedBytes = null;
 
       return;
     }
 
     file = f;
     error = "";
+
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      cachedBytes = bytes;
+
+      if (isMd) {
+        format = "markdown";
+        formatManual = true;
+      } else if (isEnex) {
+        format = "evernote";
+        formatManual = true;
+      } else if (!formatManual) {
+        format = detectImportFile(bytes);
+      }
+    } catch {
+      file = null;
+      cachedBytes = null;
+      error = "could not read file";
+    }
   }
 
   async function doImport() {
@@ -60,14 +108,18 @@
     result = null;
 
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      const bytes =
+        cachedBytes ?? new Uint8Array(await file.arrayBuffer());
       const parsed = file.name.toLowerCase().endsWith(".md")
         ? parseMarkdownFile(file.name, new TextDecoder().decode(bytes))
-        : parseImportSource(bytes);
+        : file.name.toLowerCase().endsWith(".enex")
+          ? parseEnexFile(bytes)
+          : parseImportSource(bytes, format);
       const res = await applyImport(store, index, parsed);
 
       result = res;
       file = null;
+      cachedBytes = null;
       void appState.sync?.pushPending();
     } catch {
       error = "could not read zip file";
@@ -140,22 +192,35 @@
             pickFile(e.dataTransfer?.files?.[0] ?? null);
           }}
         >
-          <p>drop a zip or .md file here</p>
+          <p>drop a zip, .md or .enex file here</p>
           <p class="hint">or</p>
           <label class="file-btn">
             choose file
             <input
               type="file"
-              accept=".zip,.md"
+              accept=".zip,.md,.enex"
               hidden
               onchange={(e) => pickFile(e.currentTarget.files?.[0] ?? null)}
             />
           </label>
         </div>
         <p class="hint">
-          affine markdown exports (zip with index.md + assets, or a bare .md)
-          work too
+          affine, notion, obsidian, google keep, evernote & generic markdown —
+          the source is auto-detected from the file
         </p>
+        <div class="format-row">
+          {#each SOURCES as s (s)}
+            <button
+              class="format-pill"
+              class:active={format === s}
+              onclick={() => {
+                format = s;
+                formatManual = true;
+              }}>{s}</button
+            >
+          {/each}
+        </div>
+        <p class="hint">{FORMAT_HINTS[format]}</p>
         {#if file}
           <p class="file-name">{file.name}</p>
         {/if}
@@ -312,6 +377,32 @@
     font-size: var(--fs-xs);
     color: var(--fg-3);
     margin: var(--s2) 0;
+  }
+
+  .format-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+  }
+
+  .format-pill {
+    padding: var(--s1) var(--s3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    text-transform: lowercase;
+  }
+
+  .format-pill:hover {
+    background: var(--bg-3);
+    color: var(--fg);
+  }
+
+  .format-pill.active {
+    color: var(--fg);
+    border-color: var(--fg-3);
+    background: var(--bg-3);
   }
 
   .file-btn {
