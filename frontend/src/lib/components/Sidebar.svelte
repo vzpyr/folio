@@ -6,6 +6,9 @@
   import { createNote, promptAddFolder, promptDeleteFolder } from "../actions.ts";
   import Icon from "./Icon.svelte";
   import SyncStatus from "./SyncStatus.svelte";
+  import { aiConfigured, openChat } from "../ai/state.svelte.ts";
+
+  let aiOn = $derived(aiConfigured());
 
   let index = $derived(appState.index);
   let folderNames = $state<string[]>([]);
@@ -76,9 +79,16 @@
 <aside class="sidebar">
   <div class="bar-header">
     <h1 class="bar-title">folio</h1>
-    <button class="btn-new" onclick={() => createNote()} title="new note"
-      ><Icon name="plus" size={18} /></button
-    >
+    <div class="bar-actions">
+      {#if aiOn}
+        <button class="btn-new" onclick={openChat} title="ask your notes"
+          ><Icon name="sparkles" size={18} /></button
+        >
+      {/if}
+      <button class="btn-new" onclick={() => createNote()} title="new note"
+        ><Icon name="plus" size={18} /></button
+      >
+    </div>
   </div>
 
   <div class="sidebar-section">
@@ -184,6 +194,12 @@
     font-size: var(--fs-xl);
     color: var(--fg-2);
     border: 1px solid var(--border);
+  }
+
+  .bar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
   }
 
   .btn-new:hover {

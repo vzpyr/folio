@@ -25,6 +25,8 @@
   import ImportExport from "./ImportExport.svelte";
   import ConfirmFolderModal from "../lib/components/ConfirmFolderModal.svelte";
   import FontPicker from "../lib/components/FontPicker.svelte";
+  import { tauriHttpFetch } from "../lib/util/tauri.ts";
+  import { aiConfig, updateAiConfig } from "../lib/ai/state.svelte.ts";
 
   const settings = loadSettings();
 
@@ -53,6 +55,38 @@
   let syncConfigured = $state(
     !!loadSettings().serverUrl && !!loadSettings().token,
   );
+  let aiModels = $state<string[]>([]);
+  let aiLoadingModels = $state(false);
+  let aiError = $state("");
+
+  async function loadAiModels() {
+    if (!aiConfig.baseUrl.trim()) {
+      aiError = "base url required";
+
+      return;
+    }
+
+    aiLoadingModels = true;
+    aiError = "";
+
+    try {
+      const base = aiConfig.baseUrl.trim().replace(/\/+$/, "");
+      const headers: Record<string, string> = {};
+      if (aiConfig.token.trim()) headers.Authorization = `Bearer ${aiConfig.token.trim()}`;
+
+      const res = await tauriHttpFetch(`${base}/models`, { headers });
+      if (!res.ok) throw new Error(`${res.status}`);
+
+      const data = (await res.json()) as { data?: { id: string }[] };
+      aiModels = [...new Set((data.data ?? []).map((m) => m.id))].sort();
+
+      if (aiModels.length === 0) aiError = "no models returned";
+    } catch (e: unknown) {
+      aiError = e instanceof Error ? e.message : "could not load models";
+    } finally {
+      aiLoadingModels = false;
+    }
+  }
 
   $effect(() => {
     applyTheme(theme);
@@ -347,6 +381,62 @@
   </section>
 
   <section>
+    <h2>ai</h2>
+    <p class="signout-note">
+      optional — connect an openai-compatible chat api (openai, openrouter,
+      groq, ollama, …). credentials stay on this device and are never synced.
+    </p>
+    <label class="sync-field">
+      <span>base url</span>
+      <input
+        type="text"
+        value={aiConfig.baseUrl}
+        placeholder="https://api.openai.com/v1"
+        oninput={(e) => updateAiConfig({ baseUrl: e.currentTarget.value })}
+      />
+    </label>
+    <label class="sync-field">
+      <span>api key (optional)</span>
+      <input
+        type="password"
+        value={aiConfig.token}
+        placeholder="sk-…"
+        oninput={(e) => updateAiConfig({ token: e.currentTarget.value })}
+      />
+    </label>
+    <label class="sync-field">
+      <span>model</span>
+      <input
+        type="text"
+        value={aiConfig.model}
+        placeholder="gpt-4o-mini"
+        oninput={(e) => updateAiConfig({ model: e.currentTarget.value })}
+      />
+    </label>
+    <button
+      class="btn-save"
+      onclick={loadAiModels}
+      disabled={aiLoadingModels}
+    >
+      {aiLoadingModels ? "loading…" : "load models"}
+    </button>
+    {#if aiModels.length > 0}
+      <div class="ai-models">
+        {#each aiModels as m (m)}
+          <button
+            class="ai-model"
+            class:active={m === aiConfig.model}
+            onclick={() => updateAiConfig({ model: m })}
+          >
+            {m}
+          </button>
+        {/each}
+      </div>
+    {/if}
+    {#if aiError}<p class="error-note">{aiError}</p>{/if}
+  </section>
+
+  <section>
     <h2>data</h2>
     <div class="setting-row">
       <span class="setting-label">vault data</span>
@@ -567,5 +657,31 @@
   .sync-pill.error {
     border-color: var(--g7);
     color: var(--g7);
+  }
+
+  .ai-models {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s1);
+    margin-top: var(--s3);
+  }
+
+  .ai-model {
+    padding: var(--pad-xs) var(--pad-sm);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+  }
+
+  .ai-model:hover {
+    color: var(--fg);
+    border-color: var(--border-strong);
+  }
+
+  .ai-model.active {
+    color: var(--fg);
+    border-color: var(--fg-3);
   }
 </style>

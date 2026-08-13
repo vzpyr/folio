@@ -5,6 +5,9 @@ export const KEYS = {
   vaultDir: "folio:vaultDir",
   uiFont: "folio:uiFont",
   editorFont: "folio:editorFont",
+  aiBaseUrl: "folio:aiBaseUrl",
+  aiToken: "folio:aiToken",
+  aiModel: "folio:aiModel",
 } as const;
 
 export function loadSettings(): {
@@ -14,6 +17,9 @@ export function loadSettings(): {
   vaultDir: string;
   uiFont: string;
   editorFont: string;
+  aiBaseUrl: string;
+  aiToken: string;
+  aiModel: string;
 } {
   return {
     serverUrl: localStorage.getItem(KEYS.serverUrl) ?? "",
@@ -22,6 +28,9 @@ export function loadSettings(): {
     vaultDir: localStorage.getItem(KEYS.vaultDir) ?? "",
     uiFont: localStorage.getItem(KEYS.uiFont) ?? "system",
     editorFont: localStorage.getItem(KEYS.editorFont) ?? "system",
+    aiBaseUrl: localStorage.getItem(KEYS.aiBaseUrl) ?? "",
+    aiToken: localStorage.getItem(KEYS.aiToken) ?? "",
+    aiModel: localStorage.getItem(KEYS.aiModel) ?? "",
   };
 }
 
@@ -32,6 +41,9 @@ export function saveSettings(s: {
   vaultDir?: string;
   uiFont?: string;
   editorFont?: string;
+  aiBaseUrl?: string;
+  aiToken?: string;
+  aiModel?: string;
 }): void {
   if (s.serverUrl !== undefined)
     localStorage.setItem(KEYS.serverUrl, s.serverUrl);
@@ -41,6 +53,10 @@ export function saveSettings(s: {
   if (s.uiFont !== undefined) localStorage.setItem(KEYS.uiFont, s.uiFont);
   if (s.editorFont !== undefined)
     localStorage.setItem(KEYS.editorFont, s.editorFont);
+  if (s.aiBaseUrl !== undefined)
+    localStorage.setItem(KEYS.aiBaseUrl, s.aiBaseUrl);
+  if (s.aiToken !== undefined) localStorage.setItem(KEYS.aiToken, s.aiToken);
+  if (s.aiModel !== undefined) localStorage.setItem(KEYS.aiModel, s.aiModel);
 }
 
 const PASS_KEY = "folio:passphrase";

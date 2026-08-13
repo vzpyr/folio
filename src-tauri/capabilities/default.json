@@ -15,6 +15,10 @@
     "fs:allow-rename",
     "fs:allow-read-dir",
     "fs:allow-stat",
-    "fs:allow-exists"
+    "fs:allow-exists",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "http://*/*" }, { "url": "https://*/*" }]
+    }
   ]
 }

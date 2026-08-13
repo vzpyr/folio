@@ -10,6 +10,7 @@
   import MobileChrome from "./lib/components/MobileChrome.svelte";
   import MobileTabBar from "./lib/components/MobileTabBar.svelte";
   import Dialog from "./lib/components/Dialog.svelte";
+  import AiChat from "./lib/components/AiChat.svelte";
   import VaultGate from "./routes/VaultGate.svelte";
   import List from "./routes/List.svelte";
   import Note from "./routes/Note.svelte";
@@ -105,6 +106,8 @@
 {/if}
 
 <Dialog />
+
+<AiChat />
 
 <style>
   .app-layout {

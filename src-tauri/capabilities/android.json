@@ -3,5 +3,11 @@
   "identifier": "android-main",
   "windows": ["main"],
   "platforms": ["android"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "http://*/*" }, { "url": "https://*/*" }]
+    }
+  ]
 }

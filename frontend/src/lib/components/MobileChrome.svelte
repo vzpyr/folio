@@ -1,6 +1,10 @@
 <script lang="ts">
   import { appState, navigate } from "../../app.svelte.ts";
   import SyncStatus from "./SyncStatus.svelte";
+  import Icon from "./Icon.svelte";
+  import { aiConfigured, openChat } from "../ai/state.svelte.ts";
+
+  let aiOn = $derived(aiConfigured());
 </script>
 
 <header class="chrome">
@@ -14,6 +18,11 @@
     }}
     aria-label="search notes"
   />
+  {#if aiOn}
+    <button class="btn-ai" onclick={openChat} aria-label="ask your notes"
+      ><Icon name="sparkles" size={18} /></button
+    >
+  {/if}
   <SyncStatus variant="button" />
 </header>
 
@@ -45,5 +54,24 @@
     outline: var(--focus-ring);
     outline-offset: -1px;
     border-color: var(--border-strong);
+  }
+
+  .btn-ai {
+    width: var(--ctl-h);
+    height: var(--ctl-h);
+    min-height: var(--ctl-h);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--bg);
+    color: var(--fg-3);
+  }
+
+  .btn-ai:hover {
+    border-color: var(--border-strong);
+    color: var(--fg-2);
   }
 </style>

@@ -114,6 +114,7 @@
   --maxw-editor: 760px; /* editor column */
   --maxw-page: 600px; /* settings page */
   --maxw-modal: 480px; /* modals */
+  --maxw-chat: 640px; /* ai chat modal */
   --maxw-narrow: 360px; /* narrow content columns: gate card, notices stack */
   --tabbar-h: 56px; /* mobile bottom tab bar (excl. safe area) */
   --fab: 46px; /* elevated create button on the tab bar */

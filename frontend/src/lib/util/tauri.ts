@@ -47,11 +47,16 @@ interface TauriFsApi {
   exists?: (path: string) => Promise<boolean>;
 }
 
+interface TauriHttpApi {
+  fetch?: (input: string, init?: RequestInit) => Promise<Response>;
+}
+
 interface TauriGlobal {
   core?: {
     invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
   };
   fs?: TauriFsApi;
+  http?: TauriHttpApi;
 }
 
 function getGlobal(): TauriGlobal {
@@ -138,4 +143,13 @@ export function tauriFs(): NativeFs {
     },
     exists: need("exists", fs.exists!),
   };
+}
+
+export function tauriHttpFetch(
+  input: string,
+  init?: RequestInit,
+): Promise<Response> {
+  const fn = isTauri() ? getGlobal().http?.fetch : undefined;
+
+  return fn ? fn(input, init) : fetch(input, init);
 }

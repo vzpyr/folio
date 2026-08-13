@@ -3,5 +3,11 @@
   "identifier": "ios-main",
   "windows": ["main"],
   "platforms": ["iOS"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [{ "url": "http://*/*" }, { "url": "https://*/*" }]
+    }
+  ]
 }
