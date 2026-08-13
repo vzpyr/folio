@@ -154,11 +154,11 @@
   }
 
   .sync-notice.conflict {
-    border-left-color: var(--g7);
+    border-left-color: var(--border-strong);
   }
 
   .sync-notice.error {
-    border-left-color: var(--g7);
+    border-left-color: var(--border-strong);
   }
 
   .sync-notice-body {

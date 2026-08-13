@@ -1,16 +1,27 @@
 <script lang="ts">
   import { appState, navigate } from "../app.svelte.ts";
   import { formatRelative } from "../lib/util/format.ts";
-  import { parseFrontmatter, writeFrontmatter } from "../lib/editor/markdown.ts";
   import type { NoteMeta } from "../lib/store/store.svelte.ts";
-  import { setTrashed } from "../lib/store/store.svelte.ts";
-  import { pruneEmptyFolder } from "../lib/store/folders.ts";
   import { mobile } from "../lib/util/mobile.svelte.ts";
+  import { folderRegistry } from "../lib/store/folders.ts";
+  import { folderSignal } from "../lib/util/signals.svelte.ts";
+  import { clickOutside, checkedAttr } from "../lib/util/dom.ts";
+  import { buildNoteExport } from "../lib/io/export.ts";
+  import { saveFile } from "../lib/io/save.ts";
+  import { addNotice } from "../lib/sync/notices.svelte.ts";
   import FolderCombo from "../lib/components/FolderCombo.svelte";
   import SortCombo, { type SortBy } from "../lib/components/SortCombo.svelte";
   import Icon from "../lib/components/Icon.svelte";
-  import { confirmDialog } from "../lib/dialogs.svelte.ts";
   import type { SearchHit, Snippet } from "../lib/store/search.ts";
+  import {
+    bulkTrash,
+    bulkRestore,
+    bulkDelete,
+    bulkSetFolder,
+    bulkTogglePin,
+    dragPayload,
+    flushSync,
+  } from "../lib/bulk.ts";
 
   let index = $derived(appState.index);
   let filterFolder = $derived(appState.filterFolder);
@@ -21,6 +32,10 @@
   let tagList = $derived(index?.tagList ?? []);
   let unassignedOnly = $derived(appState.unassignedOnly);
   let openMenu = $state<string | null>(null);
+  let moveOpen = $state(false);
+  let folderNames = $state<string[]>([]);
+  let selected = $state(new Set<string>());
+  let anchor = $state<string | null>(null);
   let notes = $derived.by(() => {
     if (!index) return [];
 
@@ -83,6 +98,41 @@
     return [...pinned, ...rest].map((n) => ({ ...n, snippet: null }));
   });
 
+  let allFolders = $derived(
+    [...folderNames].sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    ),
+  );
+  let allSelected = $derived(
+    notes.length > 0 && notes.every((n) => selected.has(n.id)),
+  );
+  let someSelected = $derived(selected.size > 0 && !allSelected);
+  let selectedIds = $derived([...selected]);
+  let allPinned = $derived(
+    selectedIds.length > 0 &&
+      selectedIds.every((id) => index?.getById(id)?.pinned),
+  );
+
+  $effect(() => {
+    const visible = new Set(notes.map((n) => n.id));
+    const next = new Set([...selected].filter((id) => visible.has(id)));
+    if (next.size !== selected.size) selected = next;
+  });
+
+  $effect(() => {
+    appState.lastSync;
+    folderSignal();
+    void refreshFolders();
+  });
+
+  async function refreshFolders() {
+    const st = appState.store;
+    if (!st) return;
+
+    await folderRegistry.load(st);
+    folderNames = [...folderRegistry.names];
+  }
+
   function esc(s: string): string {
     return s
       .replace(/&/g, "&amp;")
@@ -105,121 +155,169 @@
     navigate(`note/${id}`);
   }
 
-  async function togglePin(e: Event, id: string) {
+  function toggleSelect(id: string) {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    selected = next;
+  }
+
+  function selectRange(from: string, to: string) {
+    const ids = notes.map((n) => n.id);
+    const a = ids.indexOf(from);
+    const b = ids.indexOf(to);
+    if (a === -1 || b === -1) return;
+
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    selected = new Set(ids.slice(lo, hi + 1));
+  }
+
+  function selectClick(e: MouseEvent, id: string) {
+    if (e.shiftKey) {
+      const from = anchor ?? (selected.size > 0 ? [...selected][0] : id);
+      selectRange(from, id);
+
+      return;
+    }
+
+    toggleSelect(id);
+    anchor = id;
+  }
+
+  function rowClick(e: MouseEvent, id: string) {
+    if (e.shiftKey || e.ctrlKey || e.metaKey || selected.size > 0) {
+      selectClick(e, id);
+
+      return;
+    }
+
+    openNote(id);
+  }
+
+  function selectAllVisible() {
+    selected = allSelected ? new Set() : new Set(notes.map((n) => n.id));
+  }
+
+  function clearSelection() {
+    moveOpen = false;
+    anchor = null;
+    selected = new Set();
+  }
+
+  function dragStart(e: DragEvent, id: string) {
+    dragPayload(e, selected.has(id) ? [...selected] : [id]);
+  }
+
+  async function trashSelected() {
+    await bulkTrash(selectedIds);
+    clearSelection();
+    flushSync();
+  }
+
+  async function restoreSelected() {
+    await bulkRestore(selectedIds);
+    clearSelection();
+    flushSync();
+  }
+
+  async function deleteSelected() {
+    if (await bulkDelete(selectedIds)) clearSelection();
+  }
+
+  async function moveSelected(folder: string) {
+    await bulkSetFolder(selectedIds, folder);
+    clearSelection();
+    flushSync();
+  }
+
+  async function togglePinSelected() {
+    await bulkTogglePin(selectedIds);
+    clearSelection();
+    flushSync();
+  }
+
+  async function exportIds(ids: string[]) {
+    const store = appState.store;
+    if (!store) return;
+
+    try {
+      const res = await buildNoteExport(store, ids);
+      if (!res) return;
+
+      const outcome = await saveFile(res.name, res.bytes);
+      if (outcome === "saved") addNotice("info", `exported ${res.name}`);
+    } catch {
+      addNotice("error", "export failed");
+    }
+  }
+
+  async function exportNote(e: Event, id: string) {
     e.stopPropagation();
+    openMenu = null;
+    await exportIds([id]);
+  }
 
-    const st = appState.store;
-    const idx = index;
-    if (!st || !idx) return;
+  function exportSelected() {
+    void exportIds(selectedIds);
+  }
 
-    const cur = idx.getById(id);
-    const content = await st.readNote(id);
-    if (!cur || !content) return;
+  async function deleteAllTrash() {
+    if (!index || !filterTrash) return;
 
-    const { meta: fm, body } = parseFrontmatter(content);
-    const now = Date.now();
-    const meta: NoteMeta = {
-      ...cur,
-      pinned: !cur.pinned,
-      updated: now,
-      dirty: true,
-    };
-    const newContent = writeFrontmatter(
-      {
-        id: cur.id,
-        title: cur.title,
-        created: fm.created ?? cur.created,
-        updated: now,
-        tags: cur.tags,
-        pinned: meta.pinned,
-        folder: cur.folder,
-        trashed: cur.trashed ?? false,
-      },
-      body,
-    );
+    const ids = index.trashList.map((n) => n.id);
+    if (ids.length === 0) return;
 
-    await st.writeNote(id, meta, newContent);
-    await idx.upsert(meta, newContent);
-    void appState.sync?.sync();
+    if (await bulkDelete(ids)) clearSelection();
   }
 
   async function trashNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
-
-    const st = appState.store;
-    const idx = index;
-    if (!st || !idx) return;
-
-    await setTrashed(st, idx, id, true);
-    void appState.sync?.sync();
+    await bulkTrash([id]);
+    flushSync();
   }
 
   async function restoreNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
-
-    const st = appState.store;
-    const idx = index;
-    if (!st || !idx) return;
-
-    await setTrashed(st, idx, id, false);
-    void appState.sync?.sync();
+    await bulkRestore([id]);
+    flushSync();
   }
 
   async function deleteNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
-
-    const st = appState.store;
-    const idx = index;
-    if (!st || !idx) return;
-
-    const ok = await confirmDialog({
-      title: "delete note",
-      message: "permanently delete this note?",
-      confirmLabel: "delete",
-    });
-    if (!ok) return;
-
-    const folder = idx.getById(id)?.folder ?? "";
-    await st.deleteNote(id);
-    await idx.remove(id);
-    await pruneEmptyFolder(st, idx, folder);
-    void appState.sync?.pushDelete(id);
+    await bulkDelete([id]);
   }
 
-  async function deleteAllTrash() {
-    const st = appState.store;
-    const idx = index;
-    if (!st || !idx || !filterTrash) return;
-
-    const list = [...idx.trashList];
-    if (list.length === 0) return;
-
-    const ok = await confirmDialog({
-      title: "delete all",
-      message: `permanently delete ${list.length} trashed ${list.length === 1 ? "note" : "notes"}?`,
-      confirmLabel: "delete all",
-    });
-    if (!ok) return;
-
-    for (const n of list) {
-      const folder = n.folder;
-      await st.deleteNote(n.id);
-      await idx.remove(n.id);
-      await pruneEmptyFolder(st, idx, folder);
-      void appState.sync?.pushDelete(n.id);
-    }
+  async function togglePin(e: Event, id: string) {
+    e.stopPropagation();
+    await bulkTogglePin([id]);
+    flushSync();
   }
 
   function toggleMenu(e: Event, id: string) {
     e.stopPropagation();
     openMenu = openMenu === id ? null : id;
   }
+
+  function onKeydown(e: KeyboardEvent) {
+    if (e.key !== "Escape") return;
+
+    if (selected.size > 0) {
+      e.preventDefault();
+      clearSelection();
+    } else if (moveOpen) {
+      moveOpen = false;
+    } else {
+      openMenu = null;
+    }
+  }
 </script>
 
 <svelte:document onclick={() => (openMenu = null)} />
+<svelte:window onkeydown={onKeydown} />
 
 <main class="note-list">
   <div class="bar-header">
@@ -294,6 +392,20 @@
     </div>
   {/if}
 
+  {#if notes.length > 0}
+    <div class="select-row">
+      <label class="select-all">
+        <input
+          type="checkbox"
+          use:checkedAttr={allSelected}
+          indeterminate={someSelected}
+          onclick={() => selectAllVisible()}
+        />
+        <span>{allSelected ? "deselect all" : "select all"}</span>
+      </label>
+    </div>
+  {/if}
+
   {#if notes.length === 0}
     <div class="empty">
       <p>
@@ -314,91 +426,167 @@
         <div
           class="note-row"
           class:pinned={note.pinned}
+          class:selected={selected.has(note.id)}
           role="button"
           tabindex="0"
           draggable="true"
-          ondragstart={(e) => {
-            e.dataTransfer?.setData("text/folio-note", note.id);
-            if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-          }}
-          onclick={() => openNote(note.id)}
+          ondragstart={(e) => dragStart(e, note.id)}
+          onclick={(e) => rowClick(e, note.id)}
           onkeydown={(e) => {
             if (e.target !== e.currentTarget) return;
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              openNote(note.id);
+              if (selected.size > 0) toggleSelect(note.id);
+              else openNote(note.id);
             }
           }}
         >
-          <div class="note-top">
-            <span class="note-title">
-              {note.title}
-            </span>
-            <span class="note-actions">
-              <span class="note-time">{formatRelative(note.updated)}</span>
-              <span class="note-time note-created"
-                >{formatRelative(note.created)}</span
-              >
-              {#if note.folder}
-                <span class="note-folder">{note.folder}</span>
-              {/if}
-              <span
-                class="note-star"
-                class:starred={note.pinned}
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => e.key === "Enter" && togglePin(e, note.id)}
-                title={note.pinned ? "unpin" : "pin"}
-                onclick={(e) => togglePin(e, note.id)}
-              >
-                {#if note.pinned}
-                  <Icon name="star-check" size={14} />
-                {:else}
-                  <Icon name="star" size={14} />
-                {/if}
+          <span class="note-check">
+            <input
+              type="checkbox"
+              use:checkedAttr={selected.has(note.id)}
+              aria-label={`select ${note.title}`}
+              onclick={(e) => {
+                e.stopPropagation();
+                selectClick(e, note.id);
+              }}
+            />
+          </span>
+          <div class="note-body">
+            <div class="note-top">
+              <span class="note-title">
+                {note.title}
               </span>
-              <span
-                class="note-menu-wrap"
-                role="button"
-                tabindex="0"
-                onkeydown={(e) => e.key === "Enter" && toggleMenu(e, note.id)}
-                title="more"
-                onclick={(e) => toggleMenu(e, note.id)}
-              >
-                <Icon name="ellipsis-vertical" size={14} />
-                {#if openMenu === note.id}
-                  <div
-                    class="note-menu"
-                    role="presentation"
-                    onclick={(e) => e.stopPropagation()}
-                  >
-                    {#if filterTrash}
+              <span class="note-actions">
+                <span class="note-time">{formatRelative(note.updated)}</span>
+                <span class="note-time note-created"
+                  >{formatRelative(note.created)}</span
+                >
+                {#if note.folder}
+                  <span class="note-folder">{note.folder}</span>
+                {/if}
+                <span
+                  class="note-star"
+                  class:starred={note.pinned}
+                  role="button"
+                  tabindex="0"
+                  onkeydown={(e) => e.key === "Enter" && togglePin(e, note.id)}
+                  title={note.pinned ? "unpin" : "pin"}
+                  onclick={(e) => togglePin(e, note.id)}
+                >
+                  {#if note.pinned}
+                    <Icon name="star-check" size={14} />
+                  {:else}
+                    <Icon name="star" size={14} />
+                  {/if}
+                </span>
+                <span
+                  class="note-menu-wrap"
+                  role="button"
+                  tabindex="0"
+                  onkeydown={(e) => e.key === "Enter" && toggleMenu(e, note.id)}
+                  title="more"
+                  onclick={(e) => toggleMenu(e, note.id)}
+                >
+                  <Icon name="ellipsis-vertical" size={14} />
+                  {#if openMenu === note.id}
+                    <div
+                      class="note-menu"
+                      role="presentation"
+                      onclick={(e) => e.stopPropagation()}
+                    >
+                      {#if filterTrash}
+                        <button
+                          class="menu-item"
+                          onclick={(e) => restoreNote(e, note.id)}>restore</button
+                        >
+                        <button
+                          class="menu-item"
+                          onclick={(e) => deleteNote(e, note.id)}>delete</button
+                        >
+                      {:else}
+                        <button
+                          class="menu-item"
+                          onclick={(e) => trashNote(e, note.id)}>trash</button
+                        >
+                      {/if}
                       <button
                         class="menu-item"
-                        onclick={(e) => restoreNote(e, note.id)}>restore</button
+                        onclick={(e) => exportNote(e, note.id)}>export</button
                       >
-                      <button
-                        class="menu-item menu-danger"
-                        onclick={(e) => deleteNote(e, note.id)}>delete</button
-                      >
-                    {:else}
-                      <button
-                        class="menu-item menu-danger"
-                        onclick={(e) => trashNote(e, note.id)}>trash</button
-                      >
-                    {/if}
-                  </div>
-                {/if}
+                    </div>
+                  {/if}
+                </span>
               </span>
-            </span>
+            </div>
+            {#if note.snippet}
+              <div class="note-preview">{@html note.snippet}</div>
+            {:else if note.preview}
+              <div class="note-preview">{note.preview}</div>
+            {/if}
           </div>
-          {#if note.snippet}
-            <div class="note-preview">{@html note.snippet}</div>
-          {:else if note.preview}
-            <div class="note-preview">{note.preview}</div>
-          {/if}
         </div>
       {/each}
+    </div>
+  {/if}
+
+  {#if selected.size > 0}
+    <div class="bulk-bar">
+      <span class="bulk-count">{selected.size} selected</span>
+      <div class="bulk-actions">
+        {#if filterTrash}
+          <button class="bulk-btn" onclick={restoreSelected}>restore</button>
+          <button class="bulk-btn" onclick={deleteSelected}>delete</button>
+        {:else}
+          <div class="bulk-move" use:clickOutside={() => (moveOpen = false)}>
+            <button class="bulk-btn" onclick={() => (moveOpen = !moveOpen)}
+              >move to</button
+            >
+            {#if moveOpen}
+              <div
+                class="dd bulk-dd"
+                role="listbox"
+                tabindex="-1"
+                onclick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  class="dd-item"
+                  onclick={() => {
+                    moveOpen = false;
+                    void moveSelected("");
+                  }}
+                >
+                  <span class="dd-check" aria-hidden="true"></span>
+                  <span class="dd-label">all notes</span>
+                </button>
+                {#if allFolders.length}
+                  <div class="dd-sep" aria-hidden="true"></div>
+                  {#each allFolders as name (name)}
+                    <button
+                      type="button"
+                      class="dd-item"
+                      onclick={() => {
+                        moveOpen = false;
+                        void moveSelected(name);
+                      }}
+                    >
+                      <span class="dd-check" aria-hidden="true"></span>
+                      <span class="dd-label">{name}</span>
+                    </button>
+                  {/each}
+                {/if}
+              </div>
+            {/if}
+          </div>
+          <button class="bulk-btn" onclick={trashSelected}>trash</button>
+          <button class="bulk-btn" onclick={togglePinSelected}
+            >{allPinned ? "unpin" : "pin"}</button
+          >
+        {/if}
+        <button class="bulk-btn" onclick={exportSelected}>export</button>
+        <button class="bulk-btn" onclick={clearSelection}>clear</button>
+      </div>
     </div>
   {/if}
 </main>
@@ -540,8 +728,28 @@
     opacity: 0.7;
   }
 
+  .select-row {
+    display: flex;
+    align-items: center;
+    padding: var(--pad-xs) var(--pad-row);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gap);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    cursor: pointer;
+    user-select: none;
+  }
+
   .note-row {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--gap);
     width: 100%;
     text-align: left;
     padding: var(--pad-row);
@@ -557,6 +765,19 @@
   .note-row.pinned {
     background: var(--bg-2);
     border-color: var(--border);
+  }
+
+  .note-row.selected {
+    background: var(--bg-3);
+  }
+
+  .note-check {
+    flex-shrink: 0;
+  }
+
+  .note-body {
+    flex: 1;
+    min-width: 0;
   }
 
   .note-top {
@@ -671,10 +892,6 @@
     color: var(--fg);
   }
 
-  .menu-danger:hover {
-    color: var(--g7);
-  }
-
   .unassigned-filter {
     display: inline-flex;
     align-items: center;
@@ -700,7 +917,7 @@
   }
 
   .btn-delete-all:hover {
-    color: var(--g7);
+    color: var(--fg);
     border-color: var(--border-strong);
     background: var(--bg-3);
   }
@@ -719,6 +936,54 @@
     color: var(--fg);
     border-radius: var(--r-sm);
     padding: 0 var(--pad-xs);
+  }
+
+  .bulk-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gap);
+    padding: var(--pad-bar);
+    border-top: 1px solid var(--border);
+    background: var(--bg-2);
+    flex-shrink: 0;
+  }
+
+  .bulk-count {
+    font-size: var(--fs-sm);
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+
+  .bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+  }
+
+  .bulk-btn {
+    padding: var(--pad-sm);
+    font-size: var(--fs-sm);
+    color: var(--fg-2);
+    border-radius: var(--r-sm);
+    white-space: nowrap;
+  }
+
+  .bulk-btn:hover {
+    background: var(--bg-3);
+    color: var(--fg);
+  }
+
+  .bulk-move {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .bulk-dd {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: calc(100% + var(--s1));
   }
 
   @media (max-width: 800px) {

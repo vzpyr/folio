@@ -2,6 +2,7 @@ import "./state-shim.mjs";
 import { check, done } from "./harness.mjs";
 import {
   buildExportZip,
+  buildNoteExport,
   sanitizeFileName,
   extractAttachmentRefs,
 } from "../src/lib/io/export.ts";
@@ -73,7 +74,7 @@ store.notes.set(
 store.notes.set(B_ID, note(B_ID, "beta", "", "root note\n"));
 store.attachments.set(ATT, { id: ATT, ext: "png", bytes: PNG });
 
-const zip = await buildExportZip(store, "testvaultid");
+const zip = await buildExportZip(store);
 const entries = unzip(zip);
 
 check(
@@ -85,7 +86,7 @@ check(
   "export has attachment at assets/" + ATT + ".png",
   entries[`assets/${ATT}.png`] !== undefined,
 );
-check("export has readme.txt", entries["README.txt"] !== undefined);
+check("export has no readme", entries["README.txt"] === undefined);
 
 const parsed = parseImportSource(zip);
 check("import parses 2 notes", parsed.notes.length === 2);
@@ -148,5 +149,53 @@ const refs = extractAttachmentRefs(
   `![x](assets/${ATT}.png) and [f](assets/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee.bin)`,
 );
 check("extractattachmentrefs finds refs", refs.size === 2 && refs.has(ATT));
+
+const empty = await buildNoteExport(store, []);
+check("buildnoteexport empty ids → null", empty === null);
+
+const single = await buildNoteExport(store, [B_ID]);
+check(
+  "single note without attachments exports .md",
+  single?.name === "beta.md",
+);
+check(
+  "single note md is raw content",
+  single !== null &&
+    new TextDecoder().decode(single.bytes).includes("root note\n"),
+);
+
+const singleZip = await buildNoteExport(store, [A_ID]);
+check(
+  "single note with attachments exports .zip named by title",
+  singleZip?.name === "alpha.zip",
+);
+check(
+  "single note zip contains note + asset",
+  (() => {
+    if (!singleZip) return false;
+    const e = unzip(singleZip.bytes);
+
+    return (
+      e["work/alpha.md"] !== undefined &&
+      e[`assets/${ATT}.png`] !== undefined &&
+      e["beta.md"] === undefined
+    );
+  })(),
+);
+
+const multi = await buildNoteExport(store, [A_ID, B_ID]);
+check(
+  "multi export named folio-export-<stamp>.zip",
+  /^folio-export-\d{8}-\d{6}\.zip$/.test(multi?.name ?? ""),
+);
+check(
+  "multi zip contains both notes",
+  (() => {
+    if (!multi) return false;
+    const e = unzip(multi.bytes);
+
+    return e["work/alpha.md"] !== undefined && e["beta.md"] !== undefined;
+  })(),
+);
 
 done("export");

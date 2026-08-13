@@ -51,12 +51,22 @@ interface TauriHttpApi {
   fetch?: (input: string, init?: RequestInit) => Promise<Response>;
 }
 
+interface TauriDialogApi {
+  save?: (options: unknown) => Promise<string | null>;
+}
+
+interface TauriPathApi {
+  documentDir?: () => Promise<string>;
+}
+
 interface TauriGlobal {
   core?: {
     invoke?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
   };
   fs?: TauriFsApi;
   http?: TauriHttpApi;
+  dialog?: TauriDialogApi;
+  path?: TauriPathApi;
 }
 
 function getGlobal(): TauriGlobal {
@@ -79,7 +89,7 @@ function isAndroid(): boolean {
   );
 }
 
-function isIOS(): boolean {
+export function isIOS(): boolean {
   if (!isTauri() || typeof navigator === "undefined") return false;
   const platform = navigator.platform || "";
   return (
@@ -152,4 +162,18 @@ export function tauriHttpFetch(
   const fn = isTauri() ? getGlobal().http?.fetch : undefined;
 
   return fn ? fn(input, init) : fetch(input, init);
+}
+
+export function tauriDialog(): TauriDialogApi {
+  const g = getGlobal();
+  if (!g.dialog) throw new Error("tauri dialog unavailable");
+
+  return g.dialog;
+}
+
+export function tauriPath(): TauriPathApi {
+  const g = getGlobal();
+  if (!g.path) throw new Error("tauri path unavailable");
+
+  return g.path;
 }

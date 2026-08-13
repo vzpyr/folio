@@ -659,8 +659,8 @@
   }
 
   .sync-pill.error {
-    border-color: var(--g7);
-    color: var(--g7);
+    border-color: var(--border-strong);
+    color: var(--fg);
   }
 
   .ai-models {

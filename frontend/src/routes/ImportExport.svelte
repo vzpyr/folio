@@ -1,6 +1,7 @@
 <script lang="ts">
   import { appState } from "../app.svelte.ts";
-  import { buildExportZip } from "../lib/io/export.ts";
+  import { buildExportZip, exportStamp } from "../lib/io/export.ts";
+  import { saveFile } from "../lib/io/save.ts";
   import { parseImportSource, parseMarkdownFile, applyImport } from "../lib/io/import.ts";
   import type { ImportResult } from "../lib/io/import.ts";
   import Icon from "../lib/components/Icon.svelte";
@@ -86,23 +87,12 @@
     exportDone = "";
 
     try {
-      const bytes = await buildExportZip(store, appState.keys?.vaultId ?? "");
-      const blob = new Blob([bytes], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-
-      a.href = url;
-
-      const d = new Date();
-      const p = (n: number) => String(n).padStart(2, "0");
-      const stamp = `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
-
-      a.download = `folio-export-${stamp}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      exportDone = `exported ${noteCount} notes`;
+      const bytes = await buildExportZip(store);
+      const outcome = await saveFile(
+        `folio-export-${exportStamp()}.zip`,
+        bytes,
+      );
+      if (outcome === "saved") exportDone = `exported ${noteCount} notes`;
     } catch {
       error = "could not build export zip";
     } finally {

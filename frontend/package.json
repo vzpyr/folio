@@ -8,7 +8,7 @@
     "icons": "python3 ../scripts/generate-icons.py",
     "dev": "vite",
     "preview": "vite preview",
-    "test": "node scripts/affine-import.test.mjs && node scripts/backlinks.test.mjs && node scripts/export.test.mjs && node scripts/find-replace.test.mjs && node scripts/folders.test.mjs && node scripts/proxy-regression.test.mjs && node scripts/sync.test.mjs && node scripts/taglist.test.mjs && node scripts/wysiwyg.test.mjs",
+    "test": "node scripts/affine-import.test.mjs && node scripts/backlinks.test.mjs && node scripts/export.test.mjs && node scripts/find-replace.test.mjs && node scripts/folders.test.mjs && node scripts/list-bulk.test.mjs && node scripts/proxy-regression.test.mjs && node scripts/save.test.mjs && node scripts/sync.test.mjs && node scripts/taglist.test.mjs && node scripts/wysiwyg.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

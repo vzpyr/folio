@@ -855,7 +855,7 @@ a,
 }
 
 .editor-wrap .folio-editor .math-error {
-  color: var(--g7);
+  color: var(--fg-2);
 }
 
 .editor-wrap .folio-editor .math-input {

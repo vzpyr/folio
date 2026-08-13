@@ -5,6 +5,9 @@
   "platforms": ["android"],
   "permissions": [
     "core:default",
+    "dialog:allow-save",
+    "fs:allow-write-file",
+    "fs:allow-remove",
     {
       "identifier": "http:default",
       "allow": [{ "url": "http://*/*" }, { "url": "https://*/*" }]

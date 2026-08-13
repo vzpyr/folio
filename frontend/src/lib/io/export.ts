@@ -32,11 +32,23 @@ export function extractAttachmentRefs(doc: string): Set<string> {
   return ids;
 }
 
+export interface NoteExport {
+  name: string;
+  bytes: Uint8Array<ArrayBuffer>;
+}
+
+export function exportStamp(d = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
 export async function buildExportZip(
   store: VaultStore,
-  vaultId = "",
+  ids?: Set<string>,
 ): Promise<Uint8Array<ArrayBuffer>> {
-  const notes = await store.listNotes();
+  const all = await store.listNotes();
+  const notes = ids ? all.filter((n) => ids.has(n.id)) : all;
   const attachments = await store.listAttachments();
   const extById = new Map(attachments.map((a) => [a.id, a.ext]));
   const sorted = [...notes].sort((a, b) => {
@@ -48,7 +60,6 @@ export async function buildExportZip(
   const files: Record<string, Uint8Array> = {};
   const usedNames = new Set<string>();
   const written = new Set<string>();
-  const missing = new Set<string>();
   const enc = new TextEncoder();
 
   for (const note of sorted) {
@@ -75,47 +86,44 @@ export async function buildExportZip(
 
       const ext = extById.get(aid);
       const bytes = ext ? await store.readAttachment(aid) : null;
-
-      if (!ext || bytes === null) {
-        missing.add(aid);
-        continue;
-      }
+      if (!ext || bytes === null) continue;
 
       written.add(aid);
       files[`assets/${aid}.${ext}`] = bytes;
     }
   }
 
-  files["README.txt"] = enc.encode(
-    buildReadme(new Date(), vaultId, sorted.length, written.size, [...missing]),
-  );
-
   return zipBytes(files);
 }
 
-function buildReadme(
-  date: Date,
-  vaultId: string,
-  noteCount: number,
-  attachmentCount: number,
-  missing: string[],
-): string {
-  const lines = [
-    "folio export",
-    `exported: ${date.toISOString().slice(0, 10)}`,
-    `vault: ${vaultId ? vaultId.slice(0, 12) : "—"}`,
-    `notes: ${noteCount}`,
-    `attachments: ${attachmentCount}`,
-    "",
-    "files are plain markdown with yaml frontmatter and can be re-imported with folio (import → zip).",
-  ];
+export async function buildNoteExport(
+  store: VaultStore,
+  ids: string[],
+): Promise<NoteExport | null> {
+  if (ids.length === 0) return null;
 
-  if (missing.length) {
-    lines.push(
-      "",
-      `missing attachments (not in this vault): ${missing.join(", ")}`,
-    );
+  const metas = await store.listNotes();
+  const byId = new Map(metas.map((m) => [m.id, m]));
+
+  if (ids.length > 1) {
+    return {
+      name: `folio-export-${exportStamp()}.zip`,
+      bytes: await buildExportZip(store, new Set(ids)),
+    };
   }
 
-  return lines.join("\n") + "\n";
+  const meta = byId.get(ids[0]);
+  const content = meta ? await store.readNote(meta.id) : null;
+  if (!meta || content === null) return null;
+
+  const title = sanitizeFileName(meta.title || "untitled");
+
+  if (extractAttachmentRefs(content).size === 0) {
+    return { name: `${title}.md`, bytes: new TextEncoder().encode(content) };
+  }
+
+  return {
+    name: `${title}.zip`,
+    bytes: await buildExportZip(store, new Set([meta.id])),
+  };
 }

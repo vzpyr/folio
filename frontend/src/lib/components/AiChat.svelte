@@ -234,7 +234,7 @@
 
   .msg.error {
     font-size: var(--fs-sm);
-    color: var(--g7);
+    color: var(--fg-2);
   }
 
   .composer {

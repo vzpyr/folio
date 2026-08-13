@@ -1,7 +1,13 @@
 <script lang="ts">
   import { appState, navigate, toggleSettings } from "../../app.svelte.ts";
-  import { setTrashed } from "../store/store.svelte.ts";
-  import { folderRegistry, setNoteFolder } from "../store/folders.ts";
+  import { folderRegistry } from "../store/folders.ts";
+  import {
+    bulkRestore,
+    bulkSetFolder,
+    bulkTrash,
+    droppedIds,
+    flushSync,
+  } from "../bulk.ts";
   import { folderSignal } from "../util/signals.svelte.ts";
   import { createNote, promptAddFolder, promptDeleteFolder } from "../actions.ts";
   import Icon from "./Icon.svelte";
@@ -12,11 +18,28 @@
 
   let index = $derived(appState.index);
   let folderNames = $state<string[]>([]);
+  let dragOver = $state<string | null>(null);
   let allFolders = $derived(
     [...folderNames].sort((a, b) =>
       a.toLowerCase().localeCompare(b.toLowerCase()),
     ),
   );
+
+  function dragEnter(key: string) {
+    dragOver = key;
+  }
+
+  function dragLeave(e: DragEvent, key: string) {
+    if (dragOver !== key) return;
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      dragOver = null;
+    }
+  }
 
   function countFor(name: string): number {
     return (
@@ -34,39 +57,36 @@
 
   async function dropOnAll(e: DragEvent) {
     e.preventDefault();
+    dragOver = null;
 
-    const st = appState.store;
-    const idx = appState.index;
-    const noteId = e.dataTransfer?.getData("text/folio-note");
-    if (!st || !idx || !noteId) return;
+    const ids = droppedIds(e);
+    if (ids.length === 0) return;
 
-    await setTrashed(st, idx, noteId, false);
-    await setNoteFolder(st, idx, noteId, "");
-    if (appState.sync) void appState.sync.sync();
+    await bulkRestore(ids);
+    await bulkSetFolder(ids, "");
+    flushSync();
   }
 
   async function dropOnFolder(e: DragEvent, name: string) {
     e.preventDefault();
+    dragOver = null;
 
-    const st = appState.store;
-    const idx = appState.index;
-    const noteId = e.dataTransfer?.getData("text/folio-note");
-    if (!st || !idx || !noteId) return;
+    const ids = droppedIds(e);
+    if (ids.length === 0) return;
 
-    await setNoteFolder(st, idx, noteId, name);
-    if (appState.sync) void appState.sync.sync();
+    await bulkSetFolder(ids, name);
+    flushSync();
   }
 
   async function dropOnTrash(e: DragEvent) {
     e.preventDefault();
+    dragOver = null;
 
-    const st = appState.store;
-    const idx = appState.index;
-    const noteId = e.dataTransfer?.getData("text/folio-note");
-    if (!st || !idx || !noteId) return;
+    const ids = droppedIds(e);
+    if (ids.length === 0) return;
 
-    await setTrashed(st, idx, noteId, true);
-    if (appState.sync) void appState.sync.sync();
+    await bulkTrash(ids);
+    flushSync();
   }
 
   $effect(() => {
@@ -106,6 +126,9 @@
     <button
       class="filter-item"
       class:active={appState.filterFolder === null && !appState.filterTrash}
+      class:drag-over={dragOver === "all"}
+      ondragenter={() => dragEnter("all")}
+      ondragleave={(e) => dragLeave(e, "all")}
       ondragover={(e) => e.preventDefault()}
       ondrop={dropOnAll}
       onclick={() => {
@@ -119,6 +142,9 @@
     <button
       class="filter-item filter-trash"
       class:active={appState.filterTrash}
+      class:drag-over={dragOver === "trash"}
+      ondragenter={() => dragEnter("trash")}
+      ondragleave={(e) => dragLeave(e, "trash")}
       ondragover={(e) => e.preventDefault()}
       ondrop={dropOnTrash}
       onclick={() => {
@@ -142,6 +168,9 @@
         }}
         class="folder-row"
         class:active={appState.filterFolder === name}
+        class:drag-over={dragOver === `folder:${name}`}
+        ondragenter={() => dragEnter(`folder:${name}`)}
+        ondragleave={(e) => dragLeave(e, `folder:${name}`)}
         ondragover={(e) => e.preventDefault()}
         ondrop={(e) => dropOnFolder(e, name)}
         onclick={() => {
@@ -241,6 +270,10 @@
     font-weight: 500;
   }
 
+  .filter-item.drag-over {
+    background: var(--bg-3);
+  }
+
   .section-head {
     display: flex;
     align-items: center;
@@ -286,6 +319,10 @@
     background: var(--bg);
     color: var(--fg);
     font-weight: 500;
+  }
+
+  .folder-row.drag-over {
+    background: var(--bg-3);
   }
 
   .folder-x {
