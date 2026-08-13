@@ -57,7 +57,8 @@ function mathInlineRule(state: StateInline, silent: boolean): boolean {
   if (src.charCodeAt(pos + 1) === 0x24) return false;
 
   const next = src.charCodeAt(pos + 1);
-  if (next === 0x20 || next === 0x09 || next === 0x0a || next === 0) return false;
+  if (next === 0x20 || next === 0x09 || next === 0x0a || next === 0)
+    return false;
 
   let content = "";
   let i = pos + 1;
@@ -162,7 +163,8 @@ function mathBlockRule(
 }
 
 function mathNodeView(displayMode: boolean) {
-  return ({ node, editor, getPos }: NodeViewRendererProps) => {    const wrapper = document.createElement(displayMode ? "div" : "span");
+  return ({ node, editor, getPos }: NodeViewRendererProps) => {
+    const wrapper = document.createElement(displayMode ? "div" : "span");
     wrapper.className = displayMode ? "math math-block" : "math math-inline";
     wrapper.contentEditable = "false";
 
@@ -363,7 +365,10 @@ const BlockMath = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { "data-type": "block-math" })];
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, { "data-type": "block-math" }),
+    ];
   },
 
   addInputRules() {

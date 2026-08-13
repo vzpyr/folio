@@ -34,7 +34,12 @@ const SLASH_ITEMS: SlashItem[] = [
     icon: "heading-1",
     hint: "#",
     run: (e, r) => {
-      void e.chain().focus().deleteRange(r).setNode("heading", { level: 1 }).run();
+      void e
+        .chain()
+        .focus()
+        .deleteRange(r)
+        .setNode("heading", { level: 1 })
+        .run();
     },
   },
   {
@@ -43,7 +48,12 @@ const SLASH_ITEMS: SlashItem[] = [
     icon: "heading-2",
     hint: "##",
     run: (e, r) => {
-      void e.chain().focus().deleteRange(r).setNode("heading", { level: 2 }).run();
+      void e
+        .chain()
+        .focus()
+        .deleteRange(r)
+        .setNode("heading", { level: 2 })
+        .run();
     },
   },
   {
@@ -52,7 +62,12 @@ const SLASH_ITEMS: SlashItem[] = [
     icon: "heading-3",
     hint: "###",
     run: (e, r) => {
-      void e.chain().focus().deleteRange(r).setNode("heading", { level: 3 }).run();
+      void e
+        .chain()
+        .focus()
+        .deleteRange(r)
+        .setNode("heading", { level: 3 })
+        .run();
     },
   },
   {

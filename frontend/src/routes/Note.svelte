@@ -16,7 +16,7 @@
   import Icon from "../lib/components/Icon.svelte";
   import { folderRegistry, setNoteFolder } from "../lib/store/folders.ts";
   import { mobile } from "../lib/util/mobile.svelte.ts";
-  import { clickOutside } from "../lib/util/dom.ts";
+  import { clickOutside, autofocus } from "../lib/util/dom.ts";
   import WikiPicker from "../lib/components/WikiPicker.svelte";
   import type { Editor } from "@tiptap/core";
   import type { NoteMeta } from "../lib/store/store.svelte.ts";
@@ -811,7 +811,7 @@
                 bind:value={folderInput}
                 placeholder="folder"
                 list="folder-options"
-                autofocus
+                use:autofocus
                 onkeydown={(e) => {
                   if (e.key === "Enter") void saveFolder();
                   if (e.key === "Escape") folderOpen = false;
@@ -1203,7 +1203,7 @@
     border: none;
     border-radius: 0;
     outline: none;
-    padding: var(--pad-xs) 0;
+    padding: var(--pad-xs);
   }
 
   .tag-input::placeholder {

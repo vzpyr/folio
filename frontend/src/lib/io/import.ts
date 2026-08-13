@@ -74,16 +74,11 @@ function normalizeContent(text: string): string {
 }
 
 export function parseMarkdownFile(name: string, text: string): ParsedImport {
-  const rel = name
-    .replace(/\\/g, "/")
-    .replace(/^\.\//, "")
-    .replace(/^\/+/, "");
+  const rel = name.replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\/+/, "");
   const path = /\.md$/i.test(rel) ? rel : `${rel}.md`;
 
   return {
-    notes: [
-      { path, folder: folderFor(path), content: normalizeContent(text) },
-    ],
+    notes: [{ path, folder: folderFor(path), content: normalizeContent(text) }],
     attachments: new Map(),
   };
 }

@@ -142,10 +142,7 @@ export const FootnoteRef = Node.create({
           let next = tr;
           if (!empty) next = next.delete(from, to);
 
-          next = next.insert(
-            next.mapping.map(from),
-            refType.create({ label }),
-          );
+          next = next.insert(next.mapping.map(from), refType.create({ label }));
 
           const defNode = defType.create(
             { label },
@@ -209,7 +206,11 @@ export const FootnoteDef = Node.create({
   },
 
   renderHTML({ node }) {
-    return ["div", { class: "footnote-def", "data-label": node.attrs.label }, 0];
+    return [
+      "div",
+      { class: "footnote-def", "data-label": node.attrs.label },
+      0,
+    ];
   },
 
   addStorage() {

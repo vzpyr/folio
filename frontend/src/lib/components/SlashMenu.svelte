@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Writable } from "svelte/store";
   import Icon from "./Icon.svelte";
+  import { autofocus } from "../util/dom.ts";
   import type { SlashItem, SlashState } from "../editor/slash.ts";
 
   let { menu }: { menu: Writable<SlashState> } = $props();
@@ -32,6 +33,7 @@
       <button
         type="button"
         role="option"
+        aria-selected={i === $menu.selected}
         class="slash-item"
         class:selected={i === $menu.selected}
         onmouseenter={() => menu.update((s) => ({ ...s, selected: i }))}

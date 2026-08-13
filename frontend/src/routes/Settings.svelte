@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import { appState, navigate } from "../app.svelte.ts";
   import {
     loadSettings,
@@ -15,12 +16,21 @@
   } from "../lib/store/vault-folder.ts";
   import { connectSync } from "../lib/connect-sync.ts";
   import { formatRelative } from "../lib/util/format.ts";
+  import {
+    applyFonts,
+    loadFontCatalog,
+    unloadFontCatalog,
+    FONTS,
+  } from "../lib/util/fonts.ts";
   import ImportExport from "./ImportExport.svelte";
   import ConfirmFolderModal from "../lib/components/ConfirmFolderModal.svelte";
+  import FontPicker from "../lib/components/FontPicker.svelte";
 
   const settings = loadSettings();
 
   let theme = $state(settings.theme || "light");
+  let uiFont = $state(settings.uiFont);
+  let editorFont = $state(settings.editorFont);
   let confirmSignOut = $state(false);
   let confirmClear = $state(false);
   let vaultId = $derived(appState.keys?.vaultId ?? "");
@@ -46,7 +56,11 @@
 
   $effect(() => {
     applyTheme(theme);
+    applyFonts(uiFont, editorFont);
   });
+
+  onMount(loadFontCatalog);
+  onDestroy(unloadFontCatalog);
 
   function toggleTheme() {
     theme = theme === "light" ? "dark" : "light";
@@ -229,6 +243,20 @@
         {theme === "light" ? "switch to dark" : "switch to light"}
       </button>
     </div>
+    <div class="setting-row">
+      <span class="setting-label">ui font</span>
+      <FontPicker value={uiFont} fonts={FONTS} label="ui font" onchange={(v) => (uiFont = v)} />
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">editor font</span>
+      <FontPicker
+        value={editorFont}
+        fonts={FONTS}
+        label="editor font"
+        onchange={(v) => (editorFont = v)}
+      />
+    </div>
+    <p class="signout-note">provided by bunny fonts</p>
   </section>
 
   <section>

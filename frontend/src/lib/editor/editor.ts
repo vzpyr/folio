@@ -105,8 +105,7 @@ const MarkdownPaste = Extension.create({
             let text = event.clipboardData?.getData("text/plain") ?? "";
 
             if (!text.trim()) {
-              const htmlData =
-                event.clipboardData?.getData("text/html") ?? "";
+              const htmlData = event.clipboardData?.getData("text/html") ?? "";
 
               if (htmlData.trim()) {
                 text =
@@ -122,10 +121,7 @@ const MarkdownPaste = Extension.create({
             const storage = editor.storage as unknown as {
               markdown: {
                 parser: {
-                  parse(
-                    text: string,
-                    options?: { inline?: boolean },
-                  ): string;
+                  parse(text: string, options?: { inline?: boolean }): string;
                 };
               };
             };

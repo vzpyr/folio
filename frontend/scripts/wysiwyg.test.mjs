@@ -82,15 +82,9 @@ const cases = [
     "footnote",
     "text[^1] and more[^2]\n\n[^1]: first note\n\n[^2]: second **bold** note",
   ],
-  [
-    "footnote ref inside code stays literal",
-    "literal `[^3]` stays",
-  ],
+  ["footnote ref inside code stays literal", "literal `[^3]` stays"],
   ["image ref", "![alt](assets/abc-123.png)"],
-  [
-    "image with title (caption)",
-    '![alt](assets/abc-123.png "caption text")',
-  ],
+  ["image with title (caption)", '![alt](assets/abc-123.png "caption text")'],
   [
     "image with width (inline html)",
     '<img src="assets/abc-123.png" width="400" alt="alt">',
@@ -482,8 +476,7 @@ for (const [name, md, mode] of cases) {
   const filtered = host?.querySelectorAll(".slash-item") ?? [];
   check(
     "slash menu filters by query",
-    filtered.length === 1 &&
-      (filtered[0]?.textContent ?? "").includes("Quote"),
+    filtered.length === 1 && (filtered[0]?.textContent ?? "").includes("Quote"),
     String(filtered.length),
   );
 
@@ -556,8 +549,7 @@ for (const [name, md, mode] of cases) {
   check(
     "'/ta' + arrow moves selection and enters table (2x3)",
     types[0] === "table" &&
-      norm(out) ===
-        "|  |  |\n| --- | --- |\n|  |  |\n|  |  |",
+      norm(out) === "|  |  |\n| --- | --- |\n|  |  |\n|  |  |",
     JSON.stringify({ types, out }),
   );
 }
@@ -697,9 +689,9 @@ for (const [name, md, mode] of cases) {
   tr.setMeta("applyInputRules", { from: cpos, text });
   view.dispatch(tr);
   await new Promise((r) => setTimeout(r, 20));
-  const links = ed.state.doc.toJSON().content[0].content.filter(
-    (c) => c.marks?.[0]?.type === "link",
-  );
+  const links = ed.state.doc
+    .toJSON()
+    .content[0].content.filter((c) => c.marks?.[0]?.type === "link");
   ed.destroy();
   check(
     "no link conversion inside a code block",
@@ -730,7 +722,11 @@ for (const [name, md, mode] of cases) {
 
 {
   const ed = build("");
-  pasteInto(ed, "", '<meta charset="utf-8"><p>[example](https://example.com/)</p>');
+  pasteInto(
+    ed,
+    "",
+    '<meta charset="utf-8"><p>[example](https://example.com/)</p>',
+  );
   await new Promise((r) => setTimeout(r, 20));
   const marks = ed.state.doc
     .toJSON()
@@ -797,9 +793,9 @@ for (const [name, md, mode] of cases) {
   );
   await new Promise((r) => setTimeout(r, 20));
   const codeText = ed.state.doc.content.firstChild?.textContent ?? "";
-  const links = ed.state.doc.toJSON().content[0].content.filter(
-    (c) => c.marks?.[0]?.type === "link",
-  );
+  const links = ed.state.doc
+    .toJSON()
+    .content[0].content.filter((c) => c.marks?.[0]?.type === "link");
   ed.destroy();
   check(
     "paste into a code block stays literal",

@@ -10,12 +10,17 @@
     setLinkHref,
   } from "../editor/toolbar.ts";
   import Icon from "./Icon.svelte";
+  import { autofocus } from "../util/dom.ts";
 
   let { editor }: { editor: Editor } = $props();
 
-  let fmt = $state(fmtState(editor));
+  let fmt = $state(initialFmt());
   let linkMode = $state(false);
   let linkHref = $state("");
+
+  function initialFmt() {
+    return fmtState(editor);
+  }
 
   const refresh = () => {
     if (editor.isDestroyed) return;
@@ -49,7 +54,7 @@
       class="link-input"
       bind:value={linkHref}
       placeholder="url"
-      autofocus
+      use:autofocus
       onblur={() => {
         linkMode = false;
       }}

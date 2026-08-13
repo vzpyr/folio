@@ -20,7 +20,10 @@ class FakeStore {
     this.notes.set(id, { meta, content });
   }
   async listAttachments() {
-    return [...this.attachments.values()].map((a) => ({ id: a.id, ext: a.ext }));
+    return [...this.attachments.values()].map((a) => ({
+      id: a.id,
+      ext: a.ext,
+    }));
   }
   async readAttachment(id) {
     return this.attachments.get(id)?.bytes ?? null;
@@ -89,7 +92,9 @@ const [note] = [...store.notes.values()];
 const meta = note.meta;
 const body = note.content;
 const imageRef = body.match(/!\[\]\(assets\/([0-9a-f-]{8,36})\.png\)/);
-const linkRef = body.match(/\[budget\.xlsx\]\(assets\/([0-9a-f-]{8,36})\.xlsx\)/);
+const linkRef = body.match(
+  /\[budget\.xlsx\]\(assets\/([0-9a-f-]{8,36})\.xlsx\)/,
+);
 const footRef = body.match(
   /\[budget\.pdf\]\(assets\/([0-9a-f-]{8,36})\.pdf "application\/pdf"\)/,
 );
@@ -110,7 +115,9 @@ check(
 );
 check(
   "url citation footnote becomes real link",
-  body.includes('[Example Domain](https://www.example.com "An example domain")'),
+  body.includes(
+    '[Example Domain](https://www.example.com "An example domain")',
+  ),
 );
 check("url footnote ref + def removed", !body.includes("[^1]"));
 check("attachment footnote ref + def removed", !body.includes("[^2]"));
@@ -139,7 +146,7 @@ const [n2] = [...store2.notes.values()];
 check("single md derives title from h1", n2.meta.title === "Quarterly Goals");
 
 const folioBody =
-  "see [report.pdf](assets/cccccccc-cccc-4ccc-8ccc-cccccccccccc.pdf \"2048, application/pdf\")";
+  'see [report.pdf](assets/cccccccc-cccc-4ccc-8ccc-cccccccccccc.pdf "2048, application/pdf")';
 const folioZip = zipBytes({
   "index.md": enc.encode(folioBody),
   "assets/cccccccc-cccc-4ccc-8ccc-cccccccccccc.pdf": enc.encode("pdf"),
@@ -150,7 +157,9 @@ const [n3] = [...store3.notes.values()];
 const fRef = n3.content.match(/assets\/([0-9a-f-]{8,36})\.pdf/);
 check(
   "folio file chip ref re-pointed at imported attachment",
-  !!fRef && store3.attachments.has(fRef[1]) && fRef[1] !== "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  !!fRef &&
+    store3.attachments.has(fRef[1]) &&
+    fRef[1] !== "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
 );
 
 done("affine-import");

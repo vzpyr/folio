@@ -11,3 +11,7 @@ export function clickOutside(node: HTMLElement, close: () => void) {
     },
   };
 }
+
+export function autofocus(node: HTMLElement) {
+  node.focus();
+}

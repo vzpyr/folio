@@ -107,6 +107,7 @@
     sans-serif;
   --font-mono:
     ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+  --font-editor: var(--font);
   --focus-ring: 2px solid var(--fg-3);
 }
 
@@ -495,6 +496,7 @@ a,
   line-height: 1.7;
   word-break: break-word;
   font-size: var(--fs-base);
+  font-family: var(--font-editor);
 }
 
 .editor-wrap .folio-editor p {
