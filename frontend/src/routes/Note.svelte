@@ -711,7 +711,6 @@
         }}
       />
       <span class="spacer"></span>
-      {#if unsaved}<span class="unsaved-dot" title="unsaved"></span>{/if}
       <span class="sync-mini">{displaySync}</span>
       <button
         class="btn-pin"
@@ -970,14 +969,6 @@
   .note-title-input:focus {
     border-color: var(--border-strong);
     outline: none;
-  }
-
-  .unsaved-dot {
-    width: var(--dot);
-    height: var(--dot);
-    border-radius: var(--r-full);
-    background: var(--g7);
-    flex-shrink: 0;
   }
 
   .spacer {
