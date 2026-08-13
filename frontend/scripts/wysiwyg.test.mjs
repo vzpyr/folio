@@ -76,6 +76,9 @@ const cases = [
   ["bullet + ordered", "- one\n- two\n\n1. first\n2. second"],
   ["blockquote", "> quote\n\n> more"],
   ["code block with lang", "```js\nconst x = 1;\n```"],
+  ["code block plaintext", "```plaintext\nx = 1\n```"],
+  ["callout", "> [!note] 💡\n> hello"],
+  ["callout warning", "> [!warning] ⚠️\n> be careful"],
   ["gfm table", "| a | b |\n| --- | --- |\n| 1 | 2 |"],
   [
     "footnote",
@@ -415,7 +418,7 @@ for (const [name, md, mode] of cases) {
   const items = menu?.querySelectorAll(".slash-item") ?? [];
   check(
     "'/' opens the slash menu with all blocks",
-    !!menu && items.length === 13,
+    !!menu && items.length === 14,
     String(items.length),
   );
 
@@ -525,6 +528,49 @@ for (const [name, md, mode] of cases) {
     "'/ta' + enter inserts a task list",
     types[0] === "taskList" && norm(out) === "- [ ]",
     JSON.stringify({ types, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("/ca", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const types = ed.state.doc.toJSON().content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "'/ca' + enter inserts a callout",
+    types.join(",") === "callout,paragraph" && norm(out) === "> [!note] 💡\n>",
+    JSON.stringify({ types, out }),
+  );
+}
+
+{
+  const ed = build("");
+  setBody(ed, "> [!tip]\n> heat\n\n> more");
+  const node = ed.state.doc.toJSON().content[0];
+  const inner = node.content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "callout defaults icon and keeps block quote after",
+    node.type === "callout" &&
+      node.attrs.kind === "tip" &&
+      node.attrs.icon === "🔥" &&
+      inner.join(",") === "paragraph" &&
+      norm(out) === "> [!tip] 🔥\n> heat\n\n> more",
+    JSON.stringify({ node, inner, out }),
   );
 }
 

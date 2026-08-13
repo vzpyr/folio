@@ -10,7 +10,12 @@ export interface PromptOptions extends ConfirmOptions {
 }
 
 type Dialog =
-  | { kind: "confirm"; id: string; options: ConfirmOptions; resolve: (ok: boolean) => void }
+  | {
+      kind: "confirm";
+      id: string;
+      options: ConfirmOptions;
+      resolve: (ok: boolean) => void;
+    }
   | {
       kind: "prompt";
       id: string;
@@ -25,11 +30,15 @@ export function getDialog(): Dialog | null {
 }
 
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
-  return new Promise((resolve) => open({ kind: "confirm", id: crypto.randomUUID(), options, resolve }));
+  return new Promise((resolve) =>
+    open({ kind: "confirm", id: crypto.randomUUID(), options, resolve }),
+  );
 }
 
 export function promptDialog(options: PromptOptions): Promise<string | null> {
-  return new Promise((resolve) => open({ kind: "prompt", id: crypto.randomUUID(), options, resolve }));
+  return new Promise((resolve) =>
+    open({ kind: "prompt", id: crypto.randomUUID(), options, resolve }),
+  );
 }
 
 export function cancelDialog(): void {

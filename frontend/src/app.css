@@ -39,6 +39,26 @@
   --selection-bg: var(--g2);
   --code-bg: var(--g1);
 
+  /* callout accents */
+  --callout-note: #2f6fed;
+  --callout-info: #0ca678;
+  --callout-tip: #2b8a3e;
+  --callout-warning: #e8590c;
+  --callout-danger: #c92a2a;
+  --callout-question: #7048e8;
+
+  /* syntax highlighting */
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-title: #953800;
+  --hl-builtin: #953800;
+  --hl-variable: #24292f;
+  --hl-meta: #0550ae;
+  --hl-addition: #116329;
+  --hl-deletion: #82071e;
+
   /* spacing — strict 4px grid (the only spacing values the app uses) */
   --s1: 4px;
   --s2: 8px;
@@ -122,6 +142,24 @@
   --border-strong: #3d3d3d;
   --selection-bg: #2c2c2c;
   --code-bg: #171717;
+
+  --callout-note: #6ea2ff;
+  --callout-info: #38d9a9;
+  --callout-tip: #69db7c;
+  --callout-warning: #ffa94d;
+  --callout-danger: #ff8787;
+  --callout-question: #b197fc;
+
+  --hl-comment: #8b949e;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-number: #79c0ff;
+  --hl-title: #d2a8ff;
+  --hl-builtin: #ffa657;
+  --hl-variable: #c9d1d9;
+  --hl-meta: #79c0ff;
+  --hl-addition: #aff5b4;
+  --hl-deletion: #ffdcd7;
 }
 
 /* MOBILE BREAKPOINT: 800px — keep in sync with MOBILE_BREAKPOINT in
@@ -565,6 +603,227 @@ a,
 .editor-wrap .folio-editor pre code {
   background: none;
   padding: 0;
+}
+
+.editor-wrap .folio-editor .code-block {
+  margin: var(--s3) 0;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.editor-wrap .folio-editor .code-block-head {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--pad-xs) var(--pad-sm);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.editor-wrap .folio-editor .code-block-lang {
+  height: var(--icon-btn);
+  font-family: var(--font);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: 0 var(--s2);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.editor-wrap .folio-editor .code-block-lang:hover {
+  color: var(--fg-2);
+  border-color: var(--border);
+}
+
+.editor-wrap .folio-editor .code-block-lang:focus {
+  color: var(--fg-2);
+  border-color: var(--border-strong);
+}
+
+.editor-wrap .folio-editor .code-block pre {
+  margin: 0;
+  padding: var(--s3);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow-x: auto;
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-comment,
+.editor-wrap .folio-editor .code-block code .hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-keyword,
+.editor-wrap .folio-editor .code-block code .hljs-operator,
+.editor-wrap .folio-editor .code-block code .hljs-tag,
+.editor-wrap .folio-editor .code-block code .hljs-doctag,
+.editor-wrap .folio-editor .code-block code .hljs-selector-tag {
+  color: var(--hl-keyword);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-string,
+.editor-wrap .folio-editor .code-block code .hljs-regexp,
+.editor-wrap .folio-editor .code-block code .hljs-char.escape_,
+.editor-wrap .folio-editor .code-block code .hljs-addition {
+  color: var(--hl-string);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-number,
+.editor-wrap .folio-editor .code-block code .hljs-literal,
+.editor-wrap .folio-editor .code-block code .hljs-symbol,
+.editor-wrap .folio-editor .code-block code .hljs-bullet,
+.editor-wrap .folio-editor .code-block code .hljs-link {
+  color: var(--hl-number);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-title,
+.editor-wrap .folio-editor .code-block code .hljs-title.class_,
+.editor-wrap .folio-editor .code-block code .hljs-title.function_,
+.editor-wrap .folio-editor .code-block code .hljs-section,
+.editor-wrap .folio-editor .code-block code .hljs-attr,
+.editor-wrap .folio-editor .code-block code .hljs-selector-id,
+.editor-wrap .folio-editor .code-block code .hljs-selector-class {
+  color: var(--hl-title);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-built_in,
+.editor-wrap .folio-editor .code-block code .hljs-type,
+.editor-wrap .folio-editor .code-block code .hljs-params,
+.editor-wrap .folio-editor .code-block code .hljs-template-tag {
+  color: var(--hl-builtin);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-variable,
+.editor-wrap .folio-editor .code-block code .hljs-property,
+.editor-wrap .folio-editor .code-block code .hljs-attribute,
+.editor-wrap .folio-editor .code-block code .hljs-name {
+  color: var(--hl-variable);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-meta {
+  color: var(--hl-meta);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-deletion {
+  color: var(--hl-deletion);
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-emphasis {
+  font-style: italic;
+}
+
+.editor-wrap .folio-editor .code-block code .hljs-strong {
+  font-weight: 600;
+}
+
+.editor-wrap .folio-editor .callout {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  margin: var(--s3) 0;
+  padding: var(--pad-md);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-left-color: var(--callout-accent, var(--border-strong));
+  border-radius: var(--r-md);
+}
+
+.editor-wrap .folio-editor .callout-note {
+  --callout-accent: var(--callout-note);
+}
+
+.editor-wrap .folio-editor .callout-info {
+  --callout-accent: var(--callout-info);
+}
+
+.editor-wrap .folio-editor .callout-tip {
+  --callout-accent: var(--callout-tip);
+}
+
+.editor-wrap .folio-editor .callout-warning {
+  --callout-accent: var(--callout-warning);
+}
+
+.editor-wrap .folio-editor .callout-danger {
+  --callout-accent: var(--callout-danger);
+}
+
+.editor-wrap .folio-editor .callout-question {
+  --callout-accent: var(--callout-question);
+}
+
+.editor-wrap .folio-editor .callout-icon {
+  flex-shrink: 0;
+  font-size: var(--fs-xl);
+  line-height: 1.4;
+  cursor: pointer;
+  padding: var(--pad-xs);
+  margin: calc(-1 * var(--pad-xs));
+  border-radius: var(--r-sm);
+  user-select: none;
+}
+
+.editor-wrap .folio-editor .callout-icon:hover {
+  background: var(--bg-3);
+}
+
+.editor-wrap .folio-editor .callout-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-wrap .folio-editor .callout-body > :first-child {
+  margin-top: 0;
+}
+
+.editor-wrap .folio-editor .callout-body > :last-child {
+  margin-bottom: 0;
+}
+
+.editor-wrap .folio-editor .callout-menu {
+  position: absolute;
+  top: var(--s5);
+  left: 0;
+  z-index: 30;
+  min-width: var(--menu-w);
+  flex-direction: column;
+  padding: var(--pad-xs);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+
+.editor-wrap .folio-editor .callout-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  padding: var(--pad-sm);
+  border-radius: var(--r-sm);
+}
+
+.editor-wrap .folio-editor .callout-opt:hover {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+
+.editor-wrap .folio-editor .callout-opt-icon {
+  width: var(--s4);
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .editor-wrap .folio-editor img {

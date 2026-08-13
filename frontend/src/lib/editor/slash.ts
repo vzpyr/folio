@@ -98,6 +98,15 @@ const SLASH_ITEMS: SlashItem[] = [
     },
   },
   {
+    id: "callout",
+    title: "Callout",
+    icon: "callout",
+    hint: "> [!]",
+    run: (e, r) => {
+      void e.chain().focus().deleteRange(r).insertCallout().run();
+    },
+  },
+  {
     id: "quote",
     title: "Quote",
     icon: "quote",

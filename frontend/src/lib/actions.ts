@@ -50,11 +50,13 @@ export async function promptAddFolder(): Promise<void> {
   const st = appState.store;
   if (!st) return;
 
-  const name = (await promptDialog({
-    title: "new folder",
-    placeholder: "folder name",
-    confirmLabel: "create",
-  }))?.trim();
+  const name = (
+    await promptDialog({
+      title: "new folder",
+      placeholder: "folder name",
+      confirmLabel: "create",
+    })
+  )?.trim();
   if (!name) return;
 
   await folderRegistry.ensure(st, name);

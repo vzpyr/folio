@@ -24,6 +24,8 @@ import { mount } from "svelte";
 import { handlePaste, handleDrop, uploadFile } from "./attachments.ts";
 import { FootnoteRef, FootnoteDef, jumpToFootnoteDef } from "./footnote.ts";
 import { InlineMath, BlockMath } from "./math.ts";
+import { Callout } from "./callout.ts";
+import { FolioCodeBlock } from "./code-block.ts";
 import { SlashCommand } from "./slash.ts";
 import FloatingBar from "../components/FloatingBar.svelte";
 import { formatBytes } from "../util/format.ts";
@@ -613,7 +615,9 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         underline: false,
         bulletList: false,
         orderedList: false,
+        codeBlock: false,
       }),
+      FolioCodeBlock,
       UnderlineMark,
       TightBulletList,
       TightOrderedList,
@@ -649,6 +653,7 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
       FootnoteDef,
       InlineMath,
       BlockMath,
+      Callout,
       Placeholder.configure({
         placeholder: ({ node }) =>
           node.type.name === "codeBlock" ? "" : "type / for commands",

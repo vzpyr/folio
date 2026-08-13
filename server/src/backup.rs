@@ -126,10 +126,8 @@ pub async fn run_loop(state: Arc<AppState>, cfg: BackupConfig) {
     if cfg.on_start {
         backup_once(&state, &cfg).await;
     }
-    let mut tick = tokio::time::interval_at(
-        tokio::time::Instant::now() + cfg.interval,
-        cfg.interval,
-    );
+    let mut tick =
+        tokio::time::interval_at(tokio::time::Instant::now() + cfg.interval, cfg.interval);
     tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tick.tick().await;
@@ -149,10 +147,8 @@ fn timestamp() -> String {
     static FORMAT: OnceLock<time::format_description::FormatDescriptionV3<'static>> =
         OnceLock::new();
     let format = FORMAT.get_or_init(|| {
-        time::format_description::parse_owned::<3>(
-            "[year][month][day]T[hour][minute][second]Z",
-        )
-        .unwrap()
+        time::format_description::parse_owned::<3>("[year][month][day]T[hour][minute][second]Z")
+            .unwrap()
     });
     time::OffsetDateTime::now_utc().format(format).unwrap()
 }
@@ -210,7 +206,9 @@ fn add_entry(
     prefix: &Path,
     backup_canon: &Path,
 ) -> io::Result<()> {
-    let name = path.file_name().ok_or_else(|| io::Error::other("invalid path"))?;
+    let name = path
+        .file_name()
+        .ok_or_else(|| io::Error::other("invalid path"))?;
     let rel = prefix.join(name);
     let md = fs::metadata(path)?;
     if md.is_dir() {
@@ -270,10 +268,7 @@ mod tests {
     use crate::files;
 
     fn temp_dir() -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "folio-backup-test-{}",
-            uuid::Uuid::new_v4()
-        ))
+        std::env::temp_dir().join(format!("folio-backup-test-{}", uuid::Uuid::new_v4()))
     }
 
     fn temp_data() -> (PathBuf, db::Database) {
@@ -355,16 +350,18 @@ mod tests {
 
         let path = create_backup(&database, dir.to_str().unwrap(), &cfg).unwrap();
         assert!(path.exists());
-        assert!(path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .ends_with(".tar.gz"));
-        assert!(path
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .starts_with("folio-20"));
+        assert!(
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .ends_with(".tar.gz")
+        );
+        assert!(
+            path.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("folio-20")
+        );
         assert!(!dir.join(".tmp").exists());
 
         let out = dir.join("restore");
@@ -380,8 +377,7 @@ mod tests {
         assert!(!out.join("folio.db-wal").exists());
         assert!(!out.join("backups").exists());
 
-        let restored =
-            db::open(out.to_str().unwrap()).unwrap();
+        let restored = db::open(out.to_str().unwrap()).unwrap();
         let manifest = db::get_manifest(&restored, "vault-a").unwrap();
         assert_eq!(manifest.len(), 1);
         assert_eq!(manifest[0].0, "item1");
