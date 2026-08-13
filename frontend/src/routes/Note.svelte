@@ -5,11 +5,8 @@
     createEditor,
     setBody,
     getMarkdown,
-    linkPrompt,
-    pickAttachment,
   } from "../lib/editor/editor.ts";
-  import { fmtState, insertWikiLink } from "../lib/editor/toolbar.ts";
-  import type { FmtState } from "../lib/editor/toolbar.ts";
+  import { insertWikiLink, undo, redo } from "../lib/editor/toolbar.ts";
   import {
     parseFrontmatter,
     writeFrontmatter,
@@ -20,7 +17,6 @@
   import { folderRegistry, setNoteFolder } from "../lib/store/folders.ts";
   import { mobile } from "../lib/util/mobile.svelte.ts";
   import { clickOutside } from "../lib/util/dom.ts";
-  import Toolbar from "../lib/components/Toolbar.svelte";
   import WikiPicker from "../lib/components/WikiPicker.svelte";
   import type { Editor } from "@tiptap/core";
   import type { NoteMeta } from "../lib/store/store.svelte.ts";
@@ -38,26 +34,11 @@
   let notFound = $state(false);
   let loading = $state(true);
   let unsaved = $state(false);
-  let fmt = $state<FmtState>({
-    bold: false,
-    italic: false,
-    underline: false,
-    strike: false,
-    code: false,
-    heading1: false,
-    heading2: false,
-    heading3: false,
-    bulletList: false,
-    orderedList: false,
-    taskList: false,
-    blockquote: false,
-    codeBlock: false,
-  });
   let meta = $state<NoteMeta | null>(null);
   let backlinks = $derived(index?.backlinks(id) ?? []);
   let backlinksOpen = $state(false);
   let folderInput = $state("");
-  let folderEditing = $state(false);
+  let folderOpen = $state(false);
   let toast = $state("");
   let wikiSeed = $state<{ q: string; n: number } | null>(null);
   let tableEl = $state<HTMLElement | null>(null);
@@ -351,13 +332,9 @@
     void doSave();
   }
 
-  function startFolderEdit() {
-    folderInput = meta?.folder ?? "";
-    folderEditing = true;
-  }
-
-  function cancelFolderEdit() {
-    folderEditing = false;
+  function toggleFolder() {
+    if (!folderOpen) folderInput = meta?.folder ?? "";
+    folderOpen = !folderOpen;
   }
 
   async function saveFolder() {
@@ -365,7 +342,7 @@
     const idx = index;
     if (!st || !idx || !meta) return;
 
-    folderEditing = false;
+    folderOpen = false;
     await setNoteFolder(st, idx, meta.id, folderInput, folderRegistry);
 
     const fresh = idx.getById(meta.id);
@@ -530,7 +507,6 @@
         tags: [...fresh.tags],
       };
       unsaved = false;
-      refreshFmt();
       if (pendingImageResolves === 0) {
         releaseSaveSuppress();
       }
@@ -614,9 +590,6 @@
       });
       setBody(view, body, resolveImageRef);
       savedSnapshot.body = getMarkdown(view);
-      refreshFmt();
-      view.on("selectionUpdate", refreshFmt);
-      view.on("update", refreshFmt);
       view.on("selectionUpdate", updateTable);
       view.on("update", updateTable);
       view.view.dom.addEventListener("contextmenu", onTableContext);
@@ -631,10 +604,6 @@
     }
 
     loading = false;
-  }
-
-  function refreshFmt() {
-    if (view) fmt = fmtState(view);
   }
 
   let titleDraft = $state("");
@@ -792,66 +761,72 @@
           </div>
         {/if}
       </div>
-    </div>
-
-    <Toolbar
-      fmt={fmt}
-      editor={view}
-      refresh={refreshFmt}
-      onLinkPrompt={() => {
-        if (view) {
-          linkPrompt(view);
-          refreshFmt();
-        }
-      }}
-      onPickAttachment={() => {
-        if (view) pickAttachment(view, store, toastMsg);
-      }}
-    >
-      {#snippet wikiButton()}
-        <WikiPicker
-          editor={view}
-          titles={index?.titleList ?? []}
-          seed={wikiSeed}
-          onPick={(target) => {
-            if (view) insertWikiLink(target)(view);
-          }}
-        />
-      {/snippet}
-    </Toolbar>
-
-    <div class="metabar">
-      {#if folderEditing}
-        <div class="folder-edit">
-          <input
-            class="folder-input"
-            bind:value={folderInput}
-            placeholder="folder"
-            list="folder-options"
-            onkeydown={(e) => {
-              if (e.key === "Enter") void saveFolder();
-              if (e.key === "Escape") cancelFolderEdit();
-            }}
-            onblur={cancelFolderEdit}
-          />
-          <button
-            class="btn-folder-save"
-            onmousedown={(e) => {
-              e.preventDefault();
-              void saveFolder();
-            }}>save</button
-          >
-        </div>
-      {:else}
-        <button class="btn-folder" onclick={startFolderEdit} title="folder">
+      <div class="folder-wrap" use:clickOutside={() => (folderOpen = false)}>
+        <button
+          class="btn-folder"
+          class:active={folderOpen}
+          onclick={toggleFolder}
+          title="folder"
+        >
           {meta?.folder || "folder"}
         </button>
+        {#if folderOpen}
+          <div
+            class="dd folder-dd"
+            role="dialog"
+            aria-label="folder"
+            tabindex="-1"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+          >
+            <div class="backlinks-dd-head">folder</div>
+            <div class="folder-row">
+              <input
+                class="folder-input"
+                bind:value={folderInput}
+                placeholder="folder"
+                list="folder-options"
+                autofocus
+                onkeydown={(e) => {
+                  if (e.key === "Enter") void saveFolder();
+                  if (e.key === "Escape") folderOpen = false;
+                }}
+              />
+              <button
+                class="btn-folder-save"
+                onmousedown={(e) => e.preventDefault()}
+                onclick={() => void saveFolder()}
+              >save</button
+              >
+            </div>
+          </div>
+        {/if}
+        <datalist id="folder-options">
+          {#each index?.folderList ?? [] as f}
+            <option value={f.folder}></option>
+          {/each}
+        </datalist>
+      </div>
+    </div>
+
+    <WikiPicker
+      editor={view}
+      titles={index?.titleList ?? []}
+      seed={wikiSeed}
+      onPick={(target) => {
+        if (view) insertWikiLink(target)(view);
+      }}
+    />
+
+    <div class="metabar">
+      {#if isMobile}
+        <button type="button" title="undo" onclick={() => view && undo(view)}>
+          <Icon name="undo" size={16} />
+        </button>
+        <button type="button" title="redo" onclick={() => view && redo(view)}>
+          <Icon name="redo" size={16} />
+        </button>
       {/if}
-      <datalist id="folder-options">
-        {#each index?.folderList ?? [] as f}
-          <option value={f.folder}></option>
-        {/each}
-      </datalist>
       <span class="meta-times">
         {#if meta}
           <span>created {formatTimestamp(meta.created)}</span>
@@ -1016,7 +991,8 @@
   }
 
   .btn-pin,
-  .btn-backlinks {
+  .btn-backlinks,
+  .btn-folder {
     height: var(--ctl-h);
     padding: 0 var(--ctl-px);
     font-size: var(--fs-sm);
@@ -1026,12 +1002,14 @@
   }
 
   .btn-pin:hover,
-  .btn-backlinks:hover {
+  .btn-backlinks:hover,
+  .btn-folder:hover {
     background: var(--bg-3);
   }
 
   .btn-pin.active,
-  .btn-backlinks.active {
+  .btn-backlinks.active,
+  .btn-folder.active {
     color: var(--fg);
     border-color: var(--border-strong);
   }
@@ -1055,7 +1033,7 @@
     background: var(--bg-2);
     color: var(--fg);
     font-size: var(--fs-sm);
-    min-width: 90px;
+    min-width: 0;
   }
 
   .folder-input:focus {
@@ -1063,13 +1041,29 @@
     outline-offset: -1px;
   }
 
-  .folder-edit {
+  .folder-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .folder-dd {
+    left: auto;
+    right: 0;
+  }
+
+  .folder-row {
     display: flex;
     align-items: center;
     gap: var(--s1);
+    padding: 0 var(--pad-sm) var(--pad-sm);
   }
 
-  .btn-folder,
+  .folder-row .folder-input {
+    flex: 1;
+    min-width: 0;
+  }
+
   .btn-folder-save {
     height: var(--ctl-h);
     padding: 0 var(--ctl-px);
@@ -1077,10 +1071,27 @@
     color: var(--fg-2);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
+    flex-shrink: 0;
   }
 
-  .btn-folder:hover,
   .btn-folder-save:hover {
+    background: var(--bg-3);
+    color: var(--fg);
+  }
+
+  .metabar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--icon-btn);
+    height: var(--icon-btn);
+    padding: 0 var(--s2);
+    border-radius: var(--r-sm);
+    color: var(--fg-2);
+    flex-shrink: 0;
+  }
+
+  .metabar button:active {
     background: var(--bg-3);
     color: var(--fg);
   }
@@ -1102,6 +1113,7 @@
   }
 
   .editor-wrap {
+    position: relative;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -1276,11 +1288,11 @@
       min-width: 0;
     }
 
-    .sync-mini {
+    .spacer {
       display: none;
     }
 
-    .meta-times {
+    .sync-mini {
       display: none;
     }
   }

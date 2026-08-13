@@ -65,7 +65,9 @@
 
   {#if isMobile}
     <div class="app-layout app-layout-mobile">
-      <MobileChrome />
+      {#if !noteId}
+        <MobileChrome />
+      {/if}
       <main class="app-main">
         {@render mainContent()}
       </main>

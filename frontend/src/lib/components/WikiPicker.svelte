@@ -21,7 +21,6 @@
   let inlineStart = $state(0);
   let anchor = $state<{ top: number; left: number } | null>(null);
   let inputEl: HTMLInputElement | undefined = $state();
-  let triggerEl: HTMLButtonElement | undefined = $state();
   let lastSeed = $state<{ q: string; n: number } | null>(null);
 
   let filtered = $derived(
@@ -71,23 +70,6 @@
     if (inlineActive) completeInline(target);
     else onPick(target);
     close();
-  }
-
-  function toggle() {
-    query = "";
-    selected = 0;
-    inlineActive = false;
-
-    if (triggerEl) {
-      const r = triggerEl.getBoundingClientRect();
-      anchor = {
-        top: r.bottom + 4,
-        left: Math.min(r.left, window.innerWidth - 260),
-      };
-    }
-
-    open = !open;
-    if (open) queueMicrotask(() => inputEl?.focus());
   }
 
   function onUpdate() {
@@ -196,8 +178,6 @@
     };
   });
 </script>
-
-<button title="link to note" bind:this={triggerEl} onclick={toggle}>[[</button>
 
 {#if open}
   <div

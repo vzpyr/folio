@@ -13,14 +13,18 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import FloatingMenu from "@tiptap/extension-floating-menu";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownMarkSpec, MarkdownNodeSpec } from "tiptap-markdown";
 import { TextSelection } from "@tiptap/pm/state";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
+import { mount } from "svelte";
 import { handlePaste, handleDrop, uploadFile } from "./attachments.ts";
 import { FootnoteRef, FootnoteDef, jumpToFootnoteDef } from "./footnote.ts";
 import { InlineMath, BlockMath } from "./math.ts";
+import { SlashCommand } from "./slash.ts";
+import FloatingBar from "../components/FloatingBar.svelte";
 import { formatBytes } from "../util/format.ts";
 import type { VaultStore, NoteIndex } from "../store/store.svelte.ts";
 
@@ -503,6 +507,7 @@ export interface EditorOptions {
 
 export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
   const noop = () => {};
+  const floatEl = document.createElement("div");
   const editor: Editor = new Editor({
     element: parent,
     extensions: [
@@ -550,6 +555,24 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         breaks: false,
         transformPastedText: true,
         transformCopiedText: true,
+      }),
+      FloatingMenu.configure({
+        element: floatEl,
+        shouldShow: ({ state }) => {
+          const { selection, doc } = state;
+
+          return (
+            !selection.empty &&
+            doc
+              .textBetween(selection.from, selection.to, "\n", "\ufffc")
+              .trim() !== ""
+          );
+        },
+        options: { placement: "top", offset: 8 },
+      }),
+      SlashCommand.configure({
+        onAttachment: () =>
+          pickAttachment(editor, opts.store, opts.onToast ?? noop),
       }),
     ],
     editorProps: {
@@ -600,41 +623,10 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
 
         return false;
       },
-      handleKeyDown(view, event) {
-        const mod = event.ctrlKey || event.metaKey;
-
-        if (mod && event.key.toLowerCase() === "k") {
-          event.preventDefault();
-          linkPrompt(editor);
-
-          return true;
-        }
-
-        if (mod && event.key.toLowerCase() === "u") {
-          event.preventDefault();
-          editor.chain().focus().toggleUnderline().run();
-
-          return true;
-        }
-
-        if (mod && event.key === "Enter") {
-          event.preventDefault();
-          editor.chain().focus().toggleTaskList().run();
-
-          return true;
-        }
-
-        if (mod && event.shiftKey && event.key.toLowerCase() === "f") {
-          event.preventDefault();
-          editor.chain().focus().insertFootnote().run();
-
-          return true;
-        }
-
-        return false;
-      },
     },
   });
+
+  mount(FloatingBar, { target: floatEl, props: { editor } });
 
   editor.on("update", () => opts.onDocChange?.());
 
@@ -667,27 +659,6 @@ export function getMarkdown(editor: Editor): string {
   return md;
 }
 
-export function linkPrompt(editor: Editor): void {
-  const current = editor.getAttributes("link").href as string | undefined;
-  const href = window.prompt("link url", current ?? "https://")?.trim();
-
-  if (href === undefined) return;
-
-  if (!href || href === "") {
-    editor.chain().focus().extendMarkRange("link").unsetLink().run();
-
-    return;
-  }
-
-  if (!isSafeHref(href)) {
-    window.alert("link blocked — unsafe url");
-
-    return;
-  }
-
-  editor.chain().focus().extendMarkRange("link").setLink({ href }).run();
-}
-
 export function pickAttachment(
   editor: Editor,
   store: VaultStore | null,
@@ -705,14 +676,6 @@ export function pickAttachment(
     input.remove();
   });
   input.click();
-}
-
-export function insertTable(editor: Editor): void {
-  editor
-    .chain()
-    .focus()
-    .insertTable({ rows: 2, cols: 2, withHeaderRow: true })
-    .run();
 }
 
 export const editorExtensions = {

@@ -1,4 +1,5 @@
 import { JSDOM } from "jsdom";
+import "./register-svelte.mjs";
 import { check, done } from "./harness.mjs";
 
 const dom = new JSDOM("<!DOCTYPE html><body></body>", {
@@ -11,10 +12,15 @@ globalThis.MutationObserver = dom.window.MutationObserver;
 globalThis.DOMParser = dom.window.DOMParser;
 globalThis.Node = dom.window.Node;
 globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.HTMLMediaElement = dom.window.HTMLMediaElement;
 globalThis.Element = dom.window.Element;
+globalThis.Text = dom.window.Text;
+globalThis.Comment = dom.window.Comment;
+globalThis.DocumentFragment = dom.window.DocumentFragment;
 globalThis.Range = dom.window.Range;
 globalThis.DOMRect = dom.window.DOMRect;
 globalThis.getSelection = dom.window.getSelection.bind(dom.window);
+globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
   dom.window,
 );
@@ -437,6 +443,133 @@ for (const [name, md, mode] of cases) {
     "frontmatter round-trips",
     ok,
     content + " → " + JSON.stringify(parsed.meta),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("/", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const host = ed.view.dom.parentElement;
+  const menu = host?.querySelector(".slash-menu");
+  const items = menu?.querySelectorAll(".slash-item") ?? [];
+  check(
+    "'/' opens the slash menu with all blocks",
+    !!menu && items.length === 13,
+    String(items.length),
+  );
+
+  const tr2 = view.state.tr.insertText("quo", view.state.selection.from);
+  view.dispatch(tr2);
+  await new Promise((r) => setTimeout(r, 20));
+  const filtered = host?.querySelectorAll(".slash-item") ?? [];
+  check(
+    "slash menu filters by query",
+    filtered.length === 1 &&
+      (filtered[0]?.textContent ?? "").includes("Quote"),
+    String(filtered.length),
+  );
+
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  check(
+    "escape closes the menu and keeps the slash text",
+    getMarkdown(ed) === "/quo",
+    getMarkdown(ed),
+  );
+  ed.destroy();
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("/", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const types = ed.state.doc.toJSON().content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "enter inserts the first slash item (heading 1)",
+    types[0] === "heading" && types[1] === "paragraph" && norm(out) === "#",
+    JSON.stringify({ types, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("/ta", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "ArrowDown",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const types = ed.state.doc.toJSON().content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "'/ta' + arrow moves selection and enters table (2x3)",
+    types[0] === "table" &&
+      norm(out) ===
+        "|  |  |\n| --- | --- |\n|  |  |\n|  |  |",
+    JSON.stringify({ types, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const tr = view.state.tr;
+  tr.insertText("/ta", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const types = ed.state.doc.toJSON().content.map((n) => n.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "'/ta' + enter inserts a task list",
+    types[0] === "taskList" && norm(out) === "- [ ]",
+    JSON.stringify({ types, out }),
   );
 }
 

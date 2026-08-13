@@ -791,3 +791,141 @@ a,
   margin-right: -5px;
   cursor: nwse-resize;
 }
+
+/* floating format bar + slash menu — rendered into TS-created dom by the
+   floating-menu and suggestion extensions (editor.ts, slash.ts); global like
+   the .math-* styles because the elements live outside svelte scope. */
+
+.float-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--pad-xs);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  z-index: 30;
+}
+
+.float-bar button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-btn-xs);
+  height: var(--icon-btn-xs);
+  padding: 0 var(--s1);
+  border-radius: var(--r-sm);
+  color: var(--fg-2);
+  flex-shrink: 0;
+}
+
+.float-bar button:hover,
+.float-bar button.active {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+
+.float-bar button:active {
+  background: var(--bg-2);
+}
+
+.slash-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 200px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--pad-xs);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+
+.slash-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.slash-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  width: 100%;
+  text-align: left;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+  padding: var(--pad-sm);
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+}
+
+.slash-item:hover,
+.slash-item.selected {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+
+.slash-item svg {
+  flex-shrink: 0;
+}
+
+.slash-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slash-hint {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  flex-shrink: 0;
+}
+
+.slash-none {
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+  padding: var(--pad-sm);
+}
+
+.link-popover {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  padding: var(--pad-xs);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  z-index: 30;
+}
+
+.link-input {
+  width: 180px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+  color: var(--fg);
+  padding: var(--pad-sm);
+  font-size: var(--fs-sm);
+}
+
+.link-input:focus {
+  outline: var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.link-apply {
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  padding: 0 var(--s1);
+  flex-shrink: 0;
+}
+
+.link-apply:hover {
+  color: var(--fg);
+}
+
+.folio-editor .suggestion {
+  background: var(--bg-3);
+  border-radius: var(--r-sm);
+}
