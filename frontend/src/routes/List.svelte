@@ -9,6 +9,7 @@
   import FolderCombo from "../lib/components/FolderCombo.svelte";
   import SortCombo, { type SortBy } from "../lib/components/SortCombo.svelte";
   import Icon from "../lib/components/Icon.svelte";
+  import { confirmDialog } from "../lib/dialogs.svelte.ts";
 
   let index = $derived(appState.index);
   let filterFolder = $derived(appState.filterFolder);
@@ -141,7 +142,12 @@
     const idx = index;
     if (!st || !idx) return;
 
-    if (!window.confirm("permanently delete this note?")) return;
+    const ok = await confirmDialog({
+      title: "delete note",
+      message: "permanently delete this note?",
+      confirmLabel: "delete",
+    });
+    if (!ok) return;
 
     const folder = idx.getById(id)?.folder ?? "";
     await st.deleteNote(id);
@@ -158,12 +164,12 @@
     const list = [...idx.trashList];
     if (list.length === 0) return;
 
-    if (
-      !window.confirm(
-        `permanently delete ${list.length} trashed ${list.length === 1 ? "note" : "notes"}?`,
-      )
-    )
-      return;
+    const ok = await confirmDialog({
+      title: "delete all",
+      message: `permanently delete ${list.length} trashed ${list.length === 1 ? "note" : "notes"}?`,
+      confirmLabel: "delete all",
+    });
+    if (!ok) return;
 
     for (const n of list) {
       const folder = n.folder;

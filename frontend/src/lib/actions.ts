@@ -1,3 +1,4 @@
+import { confirmDialog, promptDialog } from "./dialogs.svelte.ts";
 import { writeFrontmatter } from "./editor/markdown.ts";
 import { folderRegistry, deleteFolder } from "./store/folders.ts";
 import { appState, navigate } from "../app.svelte.ts";
@@ -49,7 +50,11 @@ export async function promptAddFolder(): Promise<void> {
   const st = appState.store;
   if (!st) return;
 
-  const name = window.prompt("folder name")?.trim();
+  const name = (await promptDialog({
+    title: "new folder",
+    placeholder: "folder name",
+    confirmLabel: "create",
+  }))?.trim();
   if (!name) return;
 
   await folderRegistry.ensure(st, name);
@@ -62,8 +67,12 @@ export async function promptDeleteFolder(name: string): Promise<void> {
   const idx = appState.index;
   if (!st || !idx) return;
 
-  if (!window.confirm(`delete folder "${name}"? notes move to all notes`))
-    return;
+  const ok = await confirmDialog({
+    title: "delete folder",
+    message: `delete folder "${name}"? notes move to all notes`,
+    confirmLabel: "delete",
+  });
+  if (!ok) return;
 
   await deleteFolder(st, idx, name);
   if (appState.filterFolder === name) appState.filterFolder = null;
