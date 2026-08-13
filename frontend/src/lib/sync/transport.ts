@@ -2,7 +2,7 @@ import type { Envelope } from "../util/crypto.ts";
 import type { ManifestItem } from "./types.ts";
 import { MAX_RECONNECT_BACKOFF_MS } from "./types.ts";
 
-export type PutResult =
+type PutResult =
   { ok: true; rev: number } | { ok: false; status: number; body: string };
 
 export class ApiClient {

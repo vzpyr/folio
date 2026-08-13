@@ -3,7 +3,7 @@ import type { SyncEngine } from "./lib/sync";
 import type { SyncStatus } from "./lib/sync";
 import type { Keys } from "./lib/util/crypto.ts";
 
-export interface AppState {
+interface AppState {
   route: string;
   vaultUnlocked: boolean;
   unlocking: boolean;

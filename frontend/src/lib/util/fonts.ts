@@ -1,6 +1,6 @@
 import { KEYS } from "./settings.ts";
 
-export type FontKind = "sans" | "serif" | "mono";
+type FontKind = "sans" | "serif" | "mono";
 
 export interface FontDef {
   id: string;

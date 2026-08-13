@@ -62,7 +62,7 @@ function footnoteDefRule(
   return true;
 }
 
-export function footnotePlugin(md: any): void {
+function footnotePlugin(md: any): void {
   if (md.__folioFootnote) return;
   md.__folioFootnote = true;
 

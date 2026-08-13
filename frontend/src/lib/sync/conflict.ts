@@ -21,7 +21,7 @@ export interface SyncContext {
   ledger: Ledger;
 }
 
-export async function forkConflict(
+async function forkConflict(
   ctx: SyncContext,
   meta: NoteMeta,
   content: string,

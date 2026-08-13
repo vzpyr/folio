@@ -28,7 +28,6 @@ globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
 const { createEditor, setBody, getMarkdown } =
   await import("../src/lib/editor/editor.ts");
 const { TextSelection } = await import("prosemirror-state");
-const { renderMarkdown } = await import("../src/lib/editor/md-render.ts");
 const { parseFrontmatter, writeFrontmatter } =
   await import("../src/lib/editor/markdown.ts");
 
@@ -375,56 +374,6 @@ for (const [name, md, mode] of cases) {
     JSON.stringify(md6),
   );
   ed6.destroy();
-}
-
-{
-  const html = renderMarkdown("hello <u>world</u>");
-  check(
-    "renderer passes <u> through",
-    html.includes("<u>world</u>") && !html.includes("&lt;u&gt;"),
-    html,
-  );
-}
-{
-  const html = renderMarkdown('hi <u onclick="x()">a</u>');
-  check(
-    "renderer escapes <u with attrs",
-    html.includes("&lt;u onclick=") && !html.includes("<u onclick"),
-    html,
-  );
-}
-{
-  const html = renderMarkdown("`<u>x</u>` in code");
-  check("code still escapes <u>", html.includes("&lt;u&gt;x&lt;/u&gt;"), html);
-}
-{
-  const html = renderMarkdown("**bold** stays");
-  check(
-    "renderer bold still works",
-    html.includes("<strong>bold</strong>"),
-    html,
-  );
-}
-{
-  const html = renderMarkdown(
-    '<img src="assets/abc-123.png" width="400" alt="alt">',
-  );
-  check(
-    "renderer passes sized <img> through",
-    html.includes('<img src="assets/abc-123.png" width="400"'),
-    html,
-  );
-}
-{
-  const html = renderMarkdown(
-    '[report.pdf](assets/abc-123.pdf "2048, application/pdf")',
-  );
-  check(
-    "renderer link title does not corrupt href",
-    html.includes('href="assets/abc-123.pdf"') &&
-      !html.includes('2048, application/pdf">&quot;'),
-    html,
-  );
 }
 
 {

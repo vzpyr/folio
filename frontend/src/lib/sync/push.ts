@@ -9,7 +9,7 @@ import { addNotice } from "./notices.svelte.ts";
 export async function push(
   ctx: SyncContext,
 ): Promise<{ unsettled: { id: string; updated: number }[] }> {
-  const { store, ledger, api, keys, index } = ctx;
+  const { store, ledger, index } = ctx;
   const attempted = new Set<string>();
 
   for (;;) {
@@ -140,7 +140,7 @@ async function pushAttachments(
   ctx: SyncContext,
   refs: Set<string>,
 ): Promise<void> {
-  const { store, ledger, api, keys } = ctx;
+  const { store, ledger } = ctx;
   const local = await store.listAttachments();
   const localIds = new Set(local.map((a) => a.id));
 
@@ -219,7 +219,7 @@ async function tombstoneAttachment(
   ctx: SyncContext,
   id: string,
 ): Promise<void> {
-  const { store, ledger, api, keys } = ctx;
+  const { ledger, api, keys } = ctx;
   const opaque = await opaqueId(keys, id);
   const serverRev = ledger.get(attKey(id));
   const { nonce, blob } = await sealEnvelope(

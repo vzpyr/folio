@@ -5,9 +5,7 @@ import type { Keys } from "./util/crypto.ts";
 import { NativeStore } from "./store/store-native.ts";
 import { appState } from "../app.svelte.ts";
 
-export type { SyncStatus };
-
-export interface ConnectResult {
+interface ConnectResult {
   sync: SyncEngine | null;
   status: SyncStatus;
   message?: string;

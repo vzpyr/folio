@@ -4,13 +4,13 @@ import { sanitizeFileName, sanitizeFolderPath } from "./export.ts";
 import { unzip } from "./zip.ts";
 import { isFolderRegistryId } from "../store/folders.ts";
 
-export interface RawNote {
+interface RawNote {
   path: string;
   folder: string;
   content: string;
 }
 
-export interface ParsedImport {
+interface ParsedImport {
   notes: RawNote[];
   attachments: Map<string, Uint8Array<ArrayBuffer>>;
 }

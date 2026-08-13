@@ -1,7 +1,7 @@
 import type { Editor } from "@tiptap/core";
 import { isSafeHref } from "./editor.ts";
 
-export interface FmtState {
+interface FmtState {
   bold: boolean;
   italic: boolean;
   underline: boolean;

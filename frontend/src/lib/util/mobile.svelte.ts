@@ -1,4 +1,4 @@
-export const MOBILE_BREAKPOINT = 800;
+const MOBILE_BREAKPOINT = 800;
 
 let _mobile = $state(false);
 

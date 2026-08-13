@@ -1,4 +1,3 @@
-import type { Frontmatter } from "../editor/markdown.ts";
 import {
   parseFrontmatter,
   writeFrontmatter,
@@ -320,7 +319,7 @@ export async function setTrashed(
   await index.upsert(meta, newContent);
 }
 
-export function extractPreview(body: string): string {
+function extractPreview(body: string): string {
   const lines = body.split("\n");
 
   for (const line of lines) {

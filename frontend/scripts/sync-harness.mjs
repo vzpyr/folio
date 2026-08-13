@@ -66,7 +66,7 @@ function newestServerSource() {
   return newest;
 }
 
-export function serverBinary() {
+function serverBinary() {
   if (process.env.FOLIO_SERVER_BIN) return process.env.FOLIO_SERVER_BIN;
   const debug = join(ROOT, "server", "target", "debug", "folio-server");
   const release = join(ROOT, "server", "target", "release", "folio-server");

@@ -1,4 +1,4 @@
-export interface NativeFsEntry {
+interface NativeFsEntry {
   name: string;
   path: string;
   isDir: boolean;
@@ -66,7 +66,7 @@ export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI__" in window;
 }
 
-export function isAndroid(): boolean {
+function isAndroid(): boolean {
   return (
     isTauri() &&
     typeof navigator !== "undefined" &&
@@ -74,7 +74,7 @@ export function isAndroid(): boolean {
   );
 }
 
-export function isIOS(): boolean {
+function isIOS(): boolean {
   if (!isTauri() || typeof navigator === "undefined") return false;
   const platform = navigator.platform || "";
   return (

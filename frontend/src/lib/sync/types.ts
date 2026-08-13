@@ -1,16 +1,8 @@
-import type { Envelope } from "../util/crypto.ts";
-
 export type SyncStatus = "synced" | "syncing" | "offline" | "error";
 
 export interface ManifestItem {
   id: string;
   rev: number;
-}
-
-export interface Change {
-  opaque: string;
-  rev: number;
-  env: Envelope;
 }
 
 export type SyncNoticeKind = "conflict" | "info" | "error";

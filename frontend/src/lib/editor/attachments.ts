@@ -30,7 +30,7 @@ const MIME_EXT: Record<string, string> = {
   "video/webm": "webm",
 };
 
-export function extFromMime(mime: string): string | null {
+function extFromMime(mime: string): string | null {
   return MIME_EXT[mime] ?? null;
 }
 

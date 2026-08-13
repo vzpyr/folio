@@ -493,7 +493,7 @@ const WikiLink = Node.create({
 
 const WIKI_RE = /\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g;
 
-export function applyWikiLinks(editor: Editor): void {
+function applyWikiLinks(editor: Editor): void {
   const { state, view } = editor;
   const jobs: {
     from: number;
@@ -591,7 +591,7 @@ function toggleTaskAt(view: EditorView, pos: number): void {
   }
 }
 
-export interface EditorOptions {
+interface EditorOptions {
   body: string;
   store: VaultStore;
   index: NoteIndex;
@@ -682,10 +682,10 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
     ],
     editorProps: {
       attributes: { class: "folio-editor" },
-      handlePaste(view, event) {
+      handlePaste(_view, event) {
         return handlePaste(event, editor, opts.store, opts.onToast ?? noop);
       },
-      handleDrop(view, event) {
+      handleDrop(_view, event) {
         return handleDrop(event, editor, opts.store, opts.onToast ?? noop);
       },
       handleClick(view, pos, event) {
@@ -764,7 +764,7 @@ export function getMarkdown(editor: Editor): string {
   return md;
 }
 
-export function pickAttachment(
+function pickAttachment(
   editor: Editor,
   store: VaultStore | null,
   onToast: (msg: string) => void,
@@ -782,16 +782,5 @@ export function pickAttachment(
   });
   input.click();
 }
-
-export const editorExtensions = {
-  FolioImage,
-  FileChip,
-  WikiLink,
-  UnderlineMark,
-  FootnoteRef,
-  FootnoteDef,
-  InlineMath,
-  BlockMath,
-};
 
 export type { Editor as TiptapEditor } from "@tiptap/core";

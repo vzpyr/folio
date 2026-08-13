@@ -20,7 +20,7 @@ function fromBase64(s: string): Uint8Array<ArrayBuffer> {
   return bytes;
 }
 
-export function base64url(bytes: Uint8Array): string {
+function base64url(bytes: Uint8Array): string {
   return toBase64(bytes)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -63,7 +63,7 @@ export async function deriveKeys(passphrase: string): Promise<Keys> {
   return { masterKey, vaultId };
 }
 
-export type Kind = "note" | "attachment";
+type Kind = "note" | "attachment";
 
 export interface Envelope {
   v: number;
