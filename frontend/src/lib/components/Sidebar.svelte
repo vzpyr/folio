@@ -29,6 +29,19 @@
     folderNames = [...folderRegistry.names];
   }
 
+  async function dropOnAll(e: DragEvent) {
+    e.preventDefault();
+
+    const st = appState.store;
+    const idx = appState.index;
+    const noteId = e.dataTransfer?.getData("text/folio-note");
+    if (!st || !idx || !noteId) return;
+
+    await setTrashed(st, idx, noteId, false);
+    await setNoteFolder(st, idx, noteId, "");
+    if (appState.sync) void appState.sync.sync();
+  }
+
   async function dropOnFolder(e: DragEvent, name: string) {
     e.preventDefault();
 
@@ -83,6 +96,8 @@
     <button
       class="filter-item"
       class:active={appState.filterFolder === null && !appState.filterTrash}
+      ondragover={(e) => e.preventDefault()}
+      ondrop={dropOnAll}
       onclick={() => {
         appState.filterFolder = null;
         appState.filterTrash = false;

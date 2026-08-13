@@ -39,6 +39,10 @@
   let backlinksOpen = $state(false);
   let folderInput = $state("");
   let folderOpen = $state(false);
+  let tagInput = $state("");
+  let tagSuggestions = $derived(
+    (index?.tagList ?? []).filter((t) => !(meta?.tags ?? []).includes(t.tag)),
+  );
   let toast = $state("");
   let wikiSeed = $state<{ q: string; n: number } | null>(null);
   let tableEl = $state<HTMLElement | null>(null);
@@ -355,6 +359,28 @@
 
   function togglePin() {
     updateFrontmatter({ pinned: !meta?.pinned });
+  }
+
+  function addTag() {
+    if (!meta) return;
+
+    const parts = tagInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (!parts.length) return;
+
+    const tags = [...meta.tags];
+    for (const p of parts) {
+      if (!tags.includes(p)) tags.push(p);
+    }
+    tagInput = "";
+    updateFrontmatter({ tags });
+  }
+
+  function removeTag(i: number) {
+    if (!meta) return;
+    updateFrontmatter({ tags: meta.tags.filter((_, j) => j !== i) });
   }
 
   function findTableEl(): HTMLElement | null {
@@ -808,6 +834,48 @@
       </div>
     </div>
 
+    <div class="tags-row">
+      {#each meta?.tags ?? [] as tag, i}
+        <span class="tag-chip">
+          #{tag}
+          <span
+            class="tag-remove"
+            role="button"
+            tabindex="0"
+            title="remove tag"
+            onkeydown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                removeTag(i);
+              }
+            }}
+            onclick={() => removeTag(i)}
+          >
+            <Icon name="x" size={10} />
+          </span>
+        </span>
+      {/each}
+      <input
+        class="tag-input"
+        type="text"
+        bind:value={tagInput}
+        placeholder="+ tag"
+        list="tag-options"
+        onkeydown={(e) => {
+          if (e.key === "Enter") addTag();
+          if (e.key === "Backspace" && !tagInput && meta?.tags.length) {
+            removeTag(meta.tags.length - 1);
+          }
+          if (e.key === "Escape") e.currentTarget.blur();
+        }}
+      />
+      <datalist id="tag-options">
+        {#each tagSuggestions as t}
+          <option value={t.tag}></option>
+        {/each}
+      </datalist>
+    </div>
+
     <WikiPicker
       editor={view}
       titles={index?.titleList ?? []}
@@ -1085,6 +1153,61 @@
   .metabar button:active {
     background: var(--bg-3);
     color: var(--fg);
+  }
+
+  .tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--s1);
+    padding: var(--pad-xs);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .tags-row .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    background: var(--bg-3);
+    border-radius: var(--r-sm);
+    padding: var(--pad-xs);
+    white-space: nowrap;
+  }
+
+  .tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-3);
+    padding: var(--pad-xs);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+
+  .tag-remove:hover {
+    color: var(--g4);
+  }
+
+  .tag-input {
+    flex: 1;
+    min-width: 80px;
+    font-size: var(--fs-sm);
+    color: var(--fg);
+    background: transparent;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    border-radius: 0;
+    outline: none;
+    padding: var(--pad-xs) 0;
+  }
+
+  .tag-input::placeholder {
+    color: var(--fg-3);
   }
 
   .meta-times {

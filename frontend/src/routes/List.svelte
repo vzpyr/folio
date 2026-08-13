@@ -16,6 +16,7 @@
   let isMobile = $derived(mobile());
   let sortBy = $state<SortBy>("updated");
   let search = $derived(appState.searchQuery);
+  let tagList = $derived(index?.tagList ?? []);
   let unassignedOnly = $derived(appState.unassignedOnly);
   let openMenu = $state<string | null>(null);
   let notes = $derived.by(() => {
@@ -37,6 +38,11 @@
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter((n) => n.title.toLowerCase().includes(q));
+    }
+
+    const tag = appState.filterTag;
+    if (tag) {
+      list = list.filter((n) => n.tags.includes(tag));
     }
 
     const pinned = list.filter((n) => n.pinned);
@@ -219,6 +225,30 @@
     {/if}
   </div>
 
+  {#if tagList.length > 0}
+    <div class="tag-bar">
+      {#each tagList as t (t.tag)}
+        <span
+          class="tag-chip"
+          class:active={appState.filterTag === t.tag}
+          role="button"
+          tabindex="0"
+          onkeydown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              appState.filterTag = appState.filterTag === t.tag ? null : t.tag;
+            }
+          }}
+          onclick={() => {
+            appState.filterTag = appState.filterTag === t.tag ? null : t.tag;
+          }}
+        >
+          {t.tag}<span class="tag-count">{t.count}</span>
+        </span>
+      {/each}
+    </div>
+  {/if}
+
   {#if notes.length === 0}
     <div class="empty">
       <p>
@@ -226,7 +256,9 @@
           ? "trash is empty"
           : unassignedOnly
             ? "no unassigned notes"
-            : "no notes yet"}
+            : appState.filterTag
+              ? `no notes with #${appState.filterTag}`
+              : "no notes yet"}
       </p>
     </div>
   {:else}
@@ -417,6 +449,41 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--pad-row);
+  }
+
+  .tag-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s1);
+    padding: var(--pad-xs);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    background: var(--bg-3);
+    border-radius: var(--r-sm);
+    padding: var(--pad-xs);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .tag-chip:hover {
+    color: var(--fg);
+  }
+
+  .tag-chip.active {
+    color: var(--fg);
+    background: var(--bg-2);
+  }
+
+  .tag-count {
+    opacity: 0.7;
   }
 
   .note-row {

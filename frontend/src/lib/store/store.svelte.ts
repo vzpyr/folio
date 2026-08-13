@@ -333,11 +333,11 @@ export function extractPreview(body: string): string {
 let _notes = $state<NoteMeta[]>([]);
 let _trash = $state<NoteMeta[]>([]);
 let _folders = $state<Map<string, number>>(new Map());
+let _tagCounts = $state<Map<string, number>>(new Map());
 
 export class NoteIndex {
   private byId = new Map<string, NoteMeta>();
   private titleToId = new Map<string, string[]>();
-  private tagCounts = new Map<string, number>();
   private backlinkMap = new Map<string, Set<string>>();
   private referrerMap = new Map<string, Set<string>>();
 
@@ -349,11 +349,11 @@ export class NoteIndex {
 
     this.byId.clear();
     this.titleToId.clear();
-    this.tagCounts.clear();
     this.backlinkMap.clear();
     this.referrerMap.clear();
 
     const newFolders = new Map<string, number>();
+    const newTags = new Map<string, number>();
 
     for (const n of visible) {
       this.byId.set(n.id, n);
@@ -366,7 +366,7 @@ export class NoteIndex {
       }
 
       for (const t of n.tags) {
-        this.tagCounts.set(t, (this.tagCounts.get(t) ?? 0) + 1);
+        newTags.set(t, (newTags.get(t) ?? 0) + 1);
       }
 
       if (n.folder) {
@@ -401,6 +401,7 @@ export class NoteIndex {
     _notes = visible;
     _trash = trashedList;
     _folders = newFolders;
+    _tagCounts = newTags;
   }
 
   private scanBacklinks(id: string, content: string): void {
@@ -445,9 +446,9 @@ export class NoteIndex {
       }
 
       for (const t of old.tags) {
-        const c = (this.tagCounts.get(t) ?? 1) - 1;
-        if (c <= 0) this.tagCounts.delete(t);
-        else this.tagCounts.set(t, c);
+        const c = (_tagCounts.get(t) ?? 1) - 1;
+        if (c <= 0) _tagCounts.delete(t);
+        else _tagCounts.set(t, c);
       }
 
       if (old.folder && !old.trashed) {
@@ -476,12 +477,7 @@ export class NoteIndex {
       _trash = [..._trash.filter((n) => n.id !== meta.id), meta];
     } else {
       _trash = _trash.filter((n) => n.id !== meta.id);
-
-      if (!old) {
-        _notes = [..._notes, meta];
-      } else {
-        _notes = _notes.map((n) => (n.id === meta.id ? meta : n));
-      }
+      _notes = [..._notes.filter((n) => n.id !== meta.id), meta];
     }
 
     this.byId.set(meta.id, meta);
@@ -495,8 +491,10 @@ export class NoteIndex {
       this.titleToId.set(key, arr);
     }
 
-    for (const t of meta.tags)
-      this.tagCounts.set(t, (this.tagCounts.get(t) ?? 0) + 1);
+    if (!isTrashed) {
+      for (const t of meta.tags)
+        _tagCounts.set(t, (_tagCounts.get(t) ?? 0) + 1);
+    }
 
     if (meta.folder && !isTrashed) {
       const cur = _folders.get(meta.folder) ?? 0;
@@ -504,7 +502,7 @@ export class NoteIndex {
     }
 
     this.scanBacklinks(meta.id, content);
-    this.tagCounts = new Map(this.tagCounts);
+    _tagCounts = new Map(_tagCounts);
   }
 
   async remove(id: string): Promise<void> {
@@ -525,9 +523,9 @@ export class NoteIndex {
     }
 
     for (const t of old.tags) {
-      const c = (this.tagCounts.get(t) ?? 1) - 1;
-      if (c <= 0) this.tagCounts.delete(t);
-      else this.tagCounts.set(t, c);
+      const c = (_tagCounts.get(t) ?? 1) - 1;
+      if (c <= 0) _tagCounts.delete(t);
+      else _tagCounts.set(t, c);
     }
 
     if (old.folder && !old.trashed) {
@@ -542,7 +540,7 @@ export class NoteIndex {
       }
     }
 
-    this.tagCounts = new Map(this.tagCounts);
+    _tagCounts = new Map(_tagCounts);
 
     const targets = this.referrerMap.get(id) ?? new Set();
     for (const t of targets) this.backlinkMap.get(t)?.delete(id);
@@ -589,7 +587,7 @@ export class NoteIndex {
   }
 
   get tagList(): { tag: string; count: number }[] {
-    return [...this.tagCounts.entries()]
+    return [..._tagCounts.entries()]
       .map(([tag, count]) => ({ tag, count }))
       .sort((a, b) => a.tag.localeCompare(b.tag));
   }

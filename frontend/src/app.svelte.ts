@@ -19,6 +19,7 @@ export interface AppState {
   filterTrash: boolean;
   searchQuery: string;
   unassignedOnly: boolean;
+  filterTag: string | null;
   prevRoute: string;
 }
 
@@ -38,6 +39,7 @@ export const appState: AppState = $state({
   filterTrash: false,
   searchQuery: "",
   unassignedOnly: false,
+  filterTag: null,
   prevRoute: "",
 });
 
