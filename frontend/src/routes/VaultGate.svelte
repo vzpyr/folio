@@ -13,9 +13,11 @@
     loadPassphrase,
     savePassphrase,
     clearPassphrase,
+    loadSecrets,
     applyTheme,
   } from "../lib/util/settings.ts";
   import { isDesktop, invoke, tauriFs } from "../lib/util/tauri.ts";
+  import { hydrateAiConfig } from "../lib/ai/state.svelte.ts";
   import { folderRegistry } from "../lib/store/folders.ts";
   import {
     inspectVaultFolder,
@@ -36,15 +38,7 @@
     null,
   );
   let vaultDir = $state(settings.vaultDir || "");
-  let autoUnlocking = $state(
-    (() => {
-      try {
-        return !!loadPassphrase() && (!isDesktop() || !!settings.vaultDir);
-      } catch {
-        return false;
-      }
-    })(),
-  );
+  let autoUnlocking = $state(false);
 
   function errorText(e: unknown, fallback: string): string {
     const msg =
@@ -152,10 +146,12 @@
 
   async function finishUnlock(store: VaultStore, keys: Keys): Promise<void> {
     if (rememberPassphrase) {
-      savePassphrase(passphrase.trim());
+      await savePassphrase(passphrase.trim());
     } else {
-      clearPassphrase();
+      await clearPassphrase();
     }
+
+    await hydrateAiConfig();
 
     const index = new NoteIndex();
     await index.rebuild(store);
@@ -206,7 +202,8 @@
     if (!appState.vaultUnlocked) return;
 
     const cfg = loadSettings();
-    const res = await connectSync(cfg.serverUrl, cfg.token, keys, store, index);
+    const { token } = await loadSecrets();
+    const res = await connectSync(cfg.serverUrl, token, keys, store, index);
 
     if (res.sync) {
       appState.sync = res.sync;
@@ -224,18 +221,20 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     if (isDesktop() && vaultDir) {
       void invoke("grant_vault_scope", { dir: vaultDir }).catch(() => {});
     }
 
-    const saved = loadPassphrase();
+    const saved = await loadPassphrase();
     if (saved) passphrase = saved;
 
     if (saved && (!isDesktop() || vaultDir)) {
-      unlock().finally(() => {
+      try {
+        await unlock();
+      } finally {
         autoUnlocking = false;
-      });
+      }
     } else {
       autoUnlocking = false;
     }
@@ -284,10 +283,16 @@
           }}
         />
       </label>
-      <label class="checkbox-row">
-        <input type="checkbox" bind:checked={rememberPassphrase} />
-        <span>remember passphrase</span>
-      </label>
+      {#if isDesktop()}
+        <label class="checkbox-row">
+          <input type="checkbox" bind:checked={rememberPassphrase} />
+          <span>remember passphrase (os keychain)</span>
+        </label>
+      {:else}
+        <p class="web-note">
+          on web the passphrase is never stored — re-enter it on every launch.
+        </p>
+      {/if}
       {#if mismatch}
         <div class="error">
           <p>
@@ -403,6 +408,13 @@
     font-size: var(--fs-xs);
     color: var(--fg-3);
     margin-top: var(--s2);
+    text-transform: lowercase;
+  }
+
+  .web-note {
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    margin-bottom: var(--s4);
     text-transform: lowercase;
   }
 

@@ -7,6 +7,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import io.crates.keyring.Keyring
 import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : TauriActivity() {
@@ -16,6 +17,7 @@ class MainActivity : TauriActivity() {
     val splash = installSplashScreen()
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    Keyring.initializeNdkContext(applicationContext)
     splash.setKeepOnScreenCondition { !contentReady.get() }
   }
 

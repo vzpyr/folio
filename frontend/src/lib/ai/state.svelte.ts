@@ -1,4 +1,9 @@
-import { saveSettings, loadSettings } from "../util/settings.ts";
+import {
+  saveSettings,
+  loadSettings,
+  loadSecrets,
+  saveSecrets,
+} from "../util/settings.ts";
 import type { ToolCall } from "./chat.ts";
 
 export interface AIConfig {
@@ -17,7 +22,11 @@ export interface ChatMessage {
   detail?: string;
 }
 
-export const aiConfig = $state<AIConfig>(readConfig());
+export const aiConfig = $state<AIConfig>({
+  baseUrl: loadSettings().aiBaseUrl,
+  token: "",
+  model: loadSettings().aiModel,
+});
 
 export const chatState = $state<{
   open: boolean;
@@ -25,19 +34,22 @@ export const chatState = $state<{
   messages: ChatMessage[];
 }>({ open: false, busy: false, messages: [] });
 
-function readConfig(): AIConfig {
+export async function hydrateAiConfig(): Promise<void> {
   const s = loadSettings();
+  const { aiToken } = await loadSecrets();
 
-  return { baseUrl: s.aiBaseUrl, token: s.aiToken, model: s.aiModel };
+  aiConfig.baseUrl = s.aiBaseUrl;
+  aiConfig.model = s.aiModel;
+  aiConfig.token = aiToken;
 }
 
 export function updateAiConfig(patch: Partial<AIConfig>): void {
   Object.assign(aiConfig, patch);
   saveSettings({
     aiBaseUrl: aiConfig.baseUrl,
-    aiToken: aiConfig.token,
     aiModel: aiConfig.model,
   });
+  void saveSecrets({ aiToken: aiConfig.token });
 }
 
 export function aiConfigured(): boolean {

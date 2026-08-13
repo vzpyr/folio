@@ -63,7 +63,6 @@ export async function connectSync(
   await sync.init();
 
   if (store instanceof NativeStore) {
-    await store.setConnection(url, tok);
     sync.onBeforeCycle = () => store.rescan();
   }
 

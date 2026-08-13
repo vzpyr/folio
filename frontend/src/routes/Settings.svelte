@@ -4,6 +4,8 @@
   import {
     loadSettings,
     saveSettings,
+    loadSecrets,
+    saveSecrets,
     applyTheme,
     clearPassphrase,
     clearAllSettings,
@@ -45,16 +47,14 @@
     null,
   );
   let syncUrl = $state(settings.serverUrl || "");
-  let syncToken = $state(settings.token || "");
+  let syncToken = $state("");
   let syncConnecting = $state(false);
   let syncError = $state("");
   let syncConnected = $derived(!!appState.sync);
   let syncStatus = $derived(appState.syncStatus);
   let lastSync = $derived(appState.lastSync);
   let lastError = $derived(appState.lastError);
-  let syncConfigured = $state(
-    !!loadSettings().serverUrl && !!loadSettings().token,
-  );
+  let syncConfigured = $state(false);
   let aiModels = $state<string[]>([]);
   let aiLoadingModels = $state(false);
   let aiError = $state("");
@@ -93,7 +93,12 @@
     applyFonts(uiFont, editorFont);
   });
 
-  onMount(loadFontCatalog);
+  onMount(async () => {
+    loadFontCatalog();
+    const sec = await loadSecrets();
+    syncToken = sec.token;
+    syncConfigured = !!settings.serverUrl && !!sec.token;
+  });
   onDestroy(unloadFontCatalog);
 
   function toggleTheme() {
@@ -186,12 +191,14 @@
       if (res.sync) {
         appState.sync = res.sync;
         appState.syncStatus = res.sync.status;
-        saveSettings({ serverUrl: syncUrl.trim(), token: syncToken.trim() });
+        saveSettings({ serverUrl: syncUrl.trim() });
+        await saveSecrets({ token: syncToken.trim() });
         syncConfigured = true;
         await res.sync.pushPending();
         await res.sync.pull();
       } else if (res.status === "offline") {
-        saveSettings({ serverUrl: syncUrl.trim(), token: syncToken.trim() });
+        saveSettings({ serverUrl: syncUrl.trim() });
+        await saveSecrets({ token: syncToken.trim() });
         syncConfigured = true;
         appState.sync = null;
         appState.syncStatus = "offline";
@@ -213,11 +220,8 @@
     appState.syncStatus = "synced";
     appState.lastSync = null;
     appState.lastError = null;
-    saveSettings({ serverUrl: "", token: "" });
-
-    if (appState.store instanceof NativeStore) {
-      await appState.store.setConnection("", "");
-    }
+    saveSettings({ serverUrl: "" });
+    await saveSecrets({ token: "" });
 
     syncUrl = "";
     syncToken = "";
@@ -232,7 +236,7 @@
     }
 
     await appState.sync?.destroy();
-    clearPassphrase();
+    await clearPassphrase();
     appState.vaultUnlocked = false;
     appState.store = null;
     appState.index = null;
@@ -253,7 +257,7 @@
 
     await appState.sync?.destroy();
     if (appState.store) await appState.store.clearAll();
-    clearAllSettings();
+    await clearAllSettings();
     appState.vaultUnlocked = false;
     appState.store = null;
     appState.index = null;

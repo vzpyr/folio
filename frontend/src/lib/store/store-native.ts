@@ -13,8 +13,6 @@ export class VaultMismatchError extends Error {
 
 interface NativeState {
   vaultId: string;
-  serverUrl?: string;
-  token?: string;
   revs: Record<string, number>;
   tomb: Record<string, number>;
   dirty: Record<string, boolean>;
@@ -130,12 +128,6 @@ export class NativeStore implements VaultStore {
     await this.rescan();
   }
 
-  async setConnection(serverUrl: string, token: string): Promise<void> {
-    this.state.serverUrl = serverUrl;
-    this.state.token = token;
-    await this.saveState();
-  }
-
   private async loadState(): Promise<void> {
     const p = this.abs(".folio/state.json");
     let raw: string | null = null;
@@ -171,9 +163,6 @@ export class NativeStore implements VaultStore {
 
     this.state = {
       vaultId: this.vaultId,
-      serverUrl:
-        typeof parsed.serverUrl === "string" ? parsed.serverUrl : undefined,
-      token: typeof parsed.token === "string" ? parsed.token : undefined,
       revs: parsed.revs ?? {},
       tomb: parsed.tomb ?? {},
       dirty: parsed.dirty ?? {},
