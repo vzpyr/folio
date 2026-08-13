@@ -1,4 +1,5 @@
 mod api;
+mod backup;
 mod db;
 mod embed;
 mod files;
@@ -16,6 +17,7 @@ pub struct Config {
     pub data_dir: String,
     pub port: u16,
     pub max_body: usize,
+    pub backup: backup::BackupConfig,
 }
 
 const DEFAULT_MAX_BODY: usize = 32 * 1024 * 1024;
@@ -30,10 +32,11 @@ fn load_config() -> Config {
         eprintln!("error: FOLIO_TOKEN must be a 32-byte base64 key");
         std::process::exit(1);
     }
+    let data_dir = std::env::var("FOLIO_DATA_DIR").unwrap_or_else(|_| "/data".to_string());
     Config {
         token,
         host: std::env::var("FOLIO_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string()),
-        data_dir: std::env::var("FOLIO_DATA_DIR").unwrap_or_else(|_| "/data".to_string()),
+        data_dir: data_dir.clone(),
         port: std::env::var("FOLIO_PORT")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -42,6 +45,7 @@ fn load_config() -> Config {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(DEFAULT_MAX_BODY),
+        backup: backup::from_env(&data_dir),
     }
 }
 
@@ -63,6 +67,9 @@ async fn main() {
         sse,
         write_lock: tokio::sync::Mutex::new(()),
     });
+
+    let backup_cfg = state.config.backup.clone();
+    tokio::spawn(backup::run_loop(state.clone(), backup_cfg));
 
     let host = state.config.host.clone();
     let port = state.config.port;

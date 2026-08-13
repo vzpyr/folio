@@ -345,6 +345,7 @@ mod tests {
                 data_dir: dir.to_str().unwrap().into(),
                 port: 8080,
                 max_body: 1_000_000,
+                backup: crate::backup::BackupConfig::default(),
             },
             db: Arc::new(db::open(dir.to_str().unwrap()).unwrap()),
             sse: Arc::new(sse::SseHub::new()),

@@ -52,6 +52,12 @@ pub fn get_manifest(db: &Database, vault_id: &str) -> Result<Vec<(String, i64)>,
     rows.collect::<Result<Vec<_>, _>>()
 }
 
+pub fn vacuum_into(db: &Database, path: &str) -> Result<(), rusqlite::Error> {
+    let conn = db.lock();
+    conn.execute("VACUUM INTO ?1", params![path])?;
+    Ok(())
+}
+
 pub fn insert_item(
     db: &Database,
     vault_id: &str,

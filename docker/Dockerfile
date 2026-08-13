@@ -17,10 +17,11 @@ FROM debian:trixie-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     useradd -u 1000 -s /usr/sbin/nologin folio && \
-    mkdir -p /data && chown folio /data
+    mkdir -p /data /backups && chown folio /data /backups
 COPY --from=rust-build /build/server/target/release/folio-server /usr/local/bin/folio-server
 USER folio
 VOLUME /data
+VOLUME /backups
 EXPOSE 8080
 ENV FOLIO_DATA_DIR=/data
 ENTRYPOINT ["folio-server"]
