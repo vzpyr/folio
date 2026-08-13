@@ -1191,3 +1191,19 @@ a,
   background: var(--bg-3);
   border-radius: var(--r-sm);
 }
+
+/* find/replace — search results are rendered as PM decorations (outside
+   svelte scope), so like .suggestion they live here globally. every match
+   gets a solid mid-gray bar; the current one inverts to the strongest
+   on-system contrast (--fg) so it reads as "you are here" at a glance. */
+.folio-editor .search-result {
+  background: var(--fg-3);
+  color: var(--bg);
+  border-radius: var(--r-sm);
+}
+
+.folio-editor .search-result-current {
+  background: var(--fg);
+  color: var(--bg);
+  border-radius: var(--r-sm);
+}

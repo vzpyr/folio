@@ -27,6 +27,7 @@ import { InlineMath, BlockMath } from "./math.ts";
 import { Callout } from "./callout.ts";
 import { FolioCodeBlock } from "./code-block.ts";
 import { SlashCommand } from "./slash.ts";
+import { FindReplace, findReplaceKey } from "./find-replace.ts";
 import FloatingBar from "../components/FloatingBar.svelte";
 import { formatBytes } from "../util/format.ts";
 import type { VaultStore, NoteIndex } from "../store/store.svelte.ts";
@@ -670,6 +671,7 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         element: floatEl,
         shouldShow: ({ state }) => {
           const { selection, doc } = state;
+          if (findReplaceKey.getState(state)?.term) return false;
 
           return (
             !selection.empty &&
@@ -684,6 +686,7 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         onAttachment: () =>
           pickAttachment(editor, opts.store, opts.onToast ?? noop),
       }),
+      FindReplace,
     ],
     editorProps: {
       attributes: { class: "folio-editor" },

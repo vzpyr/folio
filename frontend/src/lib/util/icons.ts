@@ -61,5 +61,6 @@ export const icons = {
   minus: '<path d="M5 12h14"/>',
   footnote:
     '<path d="M12 6v12"/><path d="M17.196 9 6.804 15"/><path d="m6.804 9 10.392 6"/>',
+  search: '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
 } as const;
 export type IconName = keyof typeof icons;

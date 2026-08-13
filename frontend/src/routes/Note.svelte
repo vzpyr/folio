@@ -18,6 +18,7 @@
   import { mobile } from "../lib/util/mobile.svelte.ts";
   import { clickOutside, autofocus } from "../lib/util/dom.ts";
   import WikiPicker from "../lib/components/WikiPicker.svelte";
+  import FindReplaceBar from "../lib/components/FindReplaceBar.svelte";
   import type { Editor } from "@tiptap/core";
   import type { NoteMeta } from "../lib/store/store.svelte.ts";
   import type { Frontmatter } from "../lib/editor/markdown.ts";
@@ -45,6 +46,7 @@
   );
   let toast = $state("");
   let wikiSeed = $state<{ q: string; n: number } | null>(null);
+  let findSeed = $state<{ n: number } | null>(null);
   let tableEl = $state<HTMLElement | null>(null);
   let tablePos = $state<{
     top: number;
@@ -896,6 +898,14 @@
         <button type="button" title="redo" onclick={() => view && redo(view)}>
           <Icon name="redo" size={16} />
         </button>
+        <button
+          type="button"
+          title="find"
+          aria-label="find in note"
+          onclick={() => (findSeed = { n: (findSeed?.n ?? 0) + 1 })}
+        >
+          <Icon name="search" size={16} />
+        </button>
       {/if}
       <span class="meta-times">
         {#if meta}
@@ -935,6 +945,7 @@
       }}
     >
       <div class="editor-wrap" bind:this={editorEl}></div>
+      <FindReplaceBar editor={view} seed={findSeed} />
       {#if loading}
         <div class="status-overlay">loading…</div>
       {:else if notFound}
