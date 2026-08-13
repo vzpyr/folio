@@ -10,6 +10,7 @@
   import SortCombo, { type SortBy } from "../lib/components/SortCombo.svelte";
   import Icon from "../lib/components/Icon.svelte";
   import { confirmDialog } from "../lib/dialogs.svelte.ts";
+  import type { SearchHit, Snippet } from "../lib/store/search.ts";
 
   let index = $derived(appState.index);
   let filterFolder = $derived(appState.filterFolder);
@@ -23,6 +24,31 @@
   let notes = $derived.by(() => {
     if (!index) return [];
 
+    const q = search.trim();
+
+    if (q) {
+      const hits = index
+        .search(q)
+        .map((hit) => ({ meta: index.getById(hit.id), hit }))
+        .filter(
+          (r): r is { meta: NoteMeta; hit: SearchHit } =>
+            !!r.meta &&
+            (filterTrash ? !!r.meta.trashed : !r.meta.trashed) &&
+            (!filterFolder || r.meta.folder === filterFolder) &&
+            (!appState.unassignedOnly || !r.meta.folder) &&
+            (!appState.filterTag || r.meta.tags.includes(appState.filterTag)),
+        )
+        .sort((a, b) => b.hit.score - a.hit.score);
+
+      const pinned = hits.filter((r) => r.meta.pinned);
+      const rest = hits.filter((r) => !r.meta.pinned);
+
+      return [...pinned, ...rest].map((r) => ({
+        ...r.meta,
+        snippet: r.hit.snippet ? snippetHtml(r.hit.snippet) : null,
+      }));
+    }
+
     let list: NoteMeta[];
 
     if (filterTrash) {
@@ -34,11 +60,6 @@
       } else if (appState.unassignedOnly) {
         list = list.filter((n) => !n.folder);
       }
-    }
-
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter((n) => n.title.toLowerCase().includes(q));
     }
 
     const tag = appState.filterTag;
@@ -59,8 +80,20 @@
     pinned.sort(cmp);
     rest.sort(cmp);
 
-    return [...pinned, ...rest];
+    return [...pinned, ...rest].map((n) => ({ ...n, snippet: null }));
   });
+
+  function esc(s: string): string {
+    return s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function snippetHtml(s: Snippet): string {
+    return `${esc(s.before)}<mark>${esc(s.match)}</mark>${esc(s.after)}`;
+  }
 
   function openNote(id: string) {
     if (openMenu) {
@@ -221,7 +254,12 @@
           bind:value={appState.searchQuery}
         />
         <span class="sort-wrap">
-          <select class="sort-select" bind:value={sortBy} title="sort">
+          <select
+            class="sort-select"
+            bind:value={sortBy}
+            title="sort"
+            disabled={!!search.trim()}
+          >
             <option value="updated">updated</option>
             <option value="created">created</option>
             <option value="title">title</option>
@@ -259,13 +297,15 @@
   {#if notes.length === 0}
     <div class="empty">
       <p>
-        {filterTrash
-          ? "trash is empty"
-          : unassignedOnly
-            ? "no unassigned notes"
-            : appState.filterTag
-              ? `no notes with #${appState.filterTag}`
-              : "no notes yet"}
+        {search.trim()
+          ? `no matches for "${search.trim()}"`
+          : filterTrash
+            ? "trash is empty"
+            : unassignedOnly
+              ? "no unassigned notes"
+              : appState.filterTag
+                ? `no notes with #${appState.filterTag}`
+                : "no notes yet"}
       </p>
     </div>
   {:else}
@@ -352,7 +392,9 @@
               </span>
             </span>
           </div>
-          {#if note.preview}
+          {#if note.snippet}
+            <div class="note-preview">{@html note.snippet}</div>
+          {:else if note.preview}
             <div class="note-preview">{note.preview}</div>
           {/if}
         </div>
@@ -426,6 +468,11 @@
   }
   .sort-select:hover {
     border-color: var(--border-strong);
+  }
+
+  .sort-select:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
 
   .sort-select:focus {
@@ -665,6 +712,13 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .note-preview :global(mark) {
+    background: var(--bg-3);
+    color: var(--fg);
+    border-radius: var(--r-sm);
+    padding: 0 var(--pad-xs);
   }
 
   @media (max-width: 800px) {

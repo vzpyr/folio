@@ -5,6 +5,7 @@ import {
   extractWikiLinks,
 } from "../editor/markdown.ts";
 import { isFolderRegistryId } from "./folders.ts";
+import { SearchIndex, type SearchHit } from "./search.ts";
 
 export interface NoteMeta {
   id: string;
@@ -356,6 +357,7 @@ export class NoteIndex {
   private titleToId = new Map<string, string[]>();
   private backlinkMap = new Map<string, Set<string>>();
   private referrerMap = new Map<string, Set<string>>();
+  private searchIndex = new SearchIndex();
 
   async rebuild(store: VaultStore): Promise<void> {
     const list = await store.listNotes();
@@ -367,6 +369,7 @@ export class NoteIndex {
     this.titleToId.clear();
     this.backlinkMap.clear();
     this.referrerMap.clear();
+    this.searchIndex = new SearchIndex();
 
     const newFolders = new Map<string, number>();
     const newTags = new Map<string, number>();
@@ -402,6 +405,7 @@ export class NoteIndex {
 
         const { body } = parseFrontmatter(content);
         n.preview = extractPreview(body);
+        this.searchIndex.add(n.id, n.title, body);
       }
     }
 
@@ -411,6 +415,7 @@ export class NoteIndex {
       if (content) {
         const { body } = parseFrontmatter(content);
         n.preview = extractPreview(body);
+        this.searchIndex.add(n.id, n.title, body);
       }
     }
 
@@ -487,6 +492,7 @@ export class NoteIndex {
     const isTrashed = !!meta.trashed;
     const { body } = parseFrontmatter(content);
     meta.preview = extractPreview(body);
+    this.searchIndex.add(meta.id, meta.title, body);
 
     if (isTrashed) {
       _notes = _notes.filter((n) => n.id !== meta.id);
@@ -566,6 +572,7 @@ export class NoteIndex {
     for (const referrers of this.referrerMap.values()) referrers.delete(id);
 
     this.byId.delete(id);
+    this.searchIndex.remove(id);
     _notes = _notes.filter((n) => n.id !== id);
     _trash = _trash.filter((n) => n.id !== id);
   }
@@ -584,6 +591,10 @@ export class NoteIndex {
 
   getById(id: string): NoteMeta | undefined {
     return this.byId.get(id);
+  }
+
+  search(query: string): SearchHit[] {
+    return this.searchIndex.search(query);
   }
 
   resolveLink(target: string): string | undefined {
