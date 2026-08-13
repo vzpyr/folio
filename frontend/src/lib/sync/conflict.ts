@@ -109,6 +109,8 @@ export async function resolveNoteConflict(
   if (remoteBody === localBody) {
     meta.rev = env.rev;
     meta.dirty = false;
+    const { meta: rfm } = parseFrontmatter(remote);
+    meta.trashed = rfm.trashed ?? meta.trashed ?? false;
     ledger.set(id, env.rev);
     await store.writeNote(id, meta, remote);
 
@@ -146,7 +148,7 @@ async function applyWinner(
     rev: env.rev ?? 0,
     conflict: false,
     dirty: false,
-    trashed,
+    trashed: fm.trashed ?? trashed,
   };
 
   await store.writeNote(id, winnerMeta, remote);

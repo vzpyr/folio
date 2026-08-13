@@ -99,6 +99,7 @@
         tags: cur.tags,
         pinned: meta.pinned,
         folder: cur.folder,
+        trashed: cur.trashed ?? false,
       },
       body,
     );

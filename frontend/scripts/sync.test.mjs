@@ -8,6 +8,8 @@ import {
   FOLDER_REGISTRY_ID,
   parseRegistryContent,
 } from "../src/lib/store/folders.ts";
+import { setTrashed } from "../src/lib/store/store.svelte.ts";
+import { SETTLE_MS } from "../src/lib/sync/types.ts";
 import { clearNotices, syncNotices } from "../src/lib/sync/notices.svelte.ts";
 import {
   startServer,
@@ -29,7 +31,15 @@ try {
   const B = await makeDevice(PASS, server);
   devices.push(A, B);
 
-  async function writeNote(dev, id, title, body, folder = "", rev = -1) {
+  async function writeNote(
+    dev,
+    id,
+    title,
+    body,
+    folder = "",
+    rev = -1,
+    trashed = false,
+  ) {
     const now = Date.now() - 5000;
     const md = writeFrontmatter(
       {
@@ -40,6 +50,7 @@ try {
         tags: [],
         pinned: false,
         folder,
+        trashed,
       },
       body,
     );
@@ -54,6 +65,7 @@ try {
       rev,
       conflict: false,
       dirty: true,
+      trashed,
     };
     await dev.store.writeNote(id, meta, md);
     await dev.index.upsert(meta, md);
@@ -330,6 +342,65 @@ try {
 
   const NOTE6 = crypto.randomUUID();
   const NOTE9 = crypto.randomUUID();
+
+  const NOTE10 = crypto.randomUUID();
+  await writeNote(A, NOTE10, "trash victim", "trash me");
+  await A.engine.sync();
+  await B.engine.sync();
+  await setTrashed(A.store, A.index, NOTE10, true);
+  await A.engine.sync();
+  await sleep(SETTLE_MS + 300);
+  await A.engine.sync();
+  await B.engine.sync();
+  const bTrashMeta = await meta(B, NOTE10);
+  check("trash propagates to b", bTrashMeta?.trashed === true);
+  check(
+    "trash flag written to frontmatter on a",
+    /^trashed: true$/m.test((await A.store.readNote(NOTE10)) ?? ""),
+  );
+  check(
+    "trash flag written to frontmatter on b",
+    /^trashed: true$/m.test((await B.store.readNote(NOTE10)) ?? ""),
+  );
+
+  await setTrashed(B.store, B.index, NOTE10, false);
+  await B.engine.sync();
+  await sleep(SETTLE_MS + 300);
+  await B.engine.sync();
+  await A.engine.sync();
+  check(
+    "restore propagates back to a",
+    (await meta(A, NOTE10))?.trashed === false,
+  );
+  check(
+    "untrash flag written to frontmatter on b",
+    /^trashed: false$/m.test((await B.store.readNote(NOTE10)) ?? ""),
+  );
+  check(
+    "a's copy reflects the untrash flag",
+    /^trashed: false$/m.test((await A.store.readNote(NOTE10)) ?? ""),
+  );
+
+  await writeNote(
+    B,
+    NOTE10,
+    "trash victim",
+    "edited while trashed",
+    "",
+    (await meta(B, NOTE10))?.rev ?? -1,
+    true,
+  );
+  await B.engine.sync();
+  await A.engine.sync();
+  check(
+    "editing a trashed note keeps it trashed on b",
+    (await meta(B, NOTE10))?.trashed === true,
+  );
+  check(
+    "editing a trashed note keeps it trashed on a",
+    (await meta(A, NOTE10))?.trashed === true,
+  );
+
   await writeNote(A, NOTE9, "offline delete victim", "delete me while offline");
   await A.engine.sync();
   await B.engine.sync();

@@ -171,6 +171,7 @@ export async function setNoteFolder(
       tags: meta.tags,
       pinned: meta.pinned,
       folder: target,
+      trashed: meta.trashed ?? false,
     },
     body,
   );

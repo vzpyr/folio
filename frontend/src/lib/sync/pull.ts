@@ -132,7 +132,7 @@ export async function pull(ctx: SyncContext): Promise<void> {
       rev: c.rev,
       conflict: isConflictTitle(title),
       dirty: false,
-      trashed: localMeta?.trashed ?? false,
+      trashed: fm.trashed ?? localMeta?.trashed ?? false,
     };
 
     await store.writeNote(opened.id, meta, md);

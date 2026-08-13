@@ -294,13 +294,30 @@ export async function setTrashed(
 
   if (!cur || !content) return;
 
+  const { meta: fm, body } = parseFrontmatter(content);
+  const now = Date.now();
   const meta: NoteMeta = {
     ...cur,
     trashed,
+    updated: now,
+    dirty: true,
   };
+  const newContent = writeFrontmatter(
+    {
+      id: cur.id,
+      title: cur.title,
+      created: fm.created ?? cur.created,
+      updated: now,
+      tags: cur.tags,
+      pinned: cur.pinned,
+      folder: cur.folder,
+      trashed,
+    },
+    body,
+  );
 
-  await store.writeNote(id, meta, content);
-  await index.upsert(meta, content);
+  await store.writeNote(id, meta, newContent);
+  await index.upsert(meta, newContent);
 }
 
 export function extractPreview(body: string): string {

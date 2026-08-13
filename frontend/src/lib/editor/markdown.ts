@@ -6,6 +6,7 @@ export interface Frontmatter {
   tags: string[];
   pinned: boolean;
   folder: string;
+  trashed?: boolean;
 }
 
 const FM_RE = /^---\n([\s\S]*?)\n---\n?/;
@@ -32,6 +33,7 @@ export function parseFrontmatter(content: string): {
     else if (key === "created") meta.created = Date.parse(val) || 0;
     else if (key === "updated") meta.updated = Date.parse(val) || 0;
     else if (key === "pinned") meta.pinned = val === "true";
+    else if (key === "trashed") meta.trashed = val === "true";
     else if (key === "folder") meta.folder = val;
     else if (key === "tags") {
       meta.tags = val
@@ -55,6 +57,7 @@ export function writeFrontmatter(fm: Frontmatter, body: string): string {
   if (fm.tags.length) lines.push(`tags: [${fm.tags.join(", ")}]`);
   if (fm.pinned) lines.push("pinned: true");
   if (fm.folder) lines.push(`folder: ${fm.folder}`);
+  lines.push(`trashed: ${fm.trashed ?? false}`);
   lines.push("---");
   lines.push("");
   lines.push(body);

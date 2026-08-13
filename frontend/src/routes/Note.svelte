@@ -184,6 +184,7 @@
       updated: now,
       rev: base?.rev ?? -1,
       conflict: base?.conflict ?? false,
+      trashed: fm.trashed ?? base?.trashed ?? false,
       dirty: true,
     };
   }
@@ -210,6 +211,7 @@
         updated: Date.now(),
         rev: stale ? editorBaseRev : (cur?.rev ?? meta?.rev ?? -1),
         conflict: meta?.conflict ?? false,
+        trashed: meta?.trashed ?? cur?.trashed ?? false,
         dirty: true,
       };
       const tagsSame =
@@ -249,6 +251,7 @@
           tags: m.tags,
           pinned: m.pinned,
           folder: m.folder,
+          trashed: m.trashed ?? false,
         },
         body,
       );

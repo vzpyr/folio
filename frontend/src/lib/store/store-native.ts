@@ -271,6 +271,7 @@ export class NativeStore implements VaultStore {
             tags: fm.tags ?? [],
             pinned: fm.pinned ?? false,
             folder: relFolder,
+            trashed: fm.trashed ?? false,
           },
           body,
         );
@@ -316,6 +317,7 @@ export class NativeStore implements VaultStore {
       updated: fm.updated ?? mtime,
       rev: this.state.revs[id] ?? -1,
       conflict: isConflictTitle(title),
+      trashed: fm.trashed ?? false,
       dirty: this.state.dirty[id] ?? dirty,
     };
 
