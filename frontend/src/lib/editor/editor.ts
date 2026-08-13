@@ -1,4 +1,4 @@
-import { Editor, Node, InputRule } from "@tiptap/core";
+import { Editor, Node, InputRule, Extension } from "@tiptap/core";
 import { findWrapping } from "@tiptap/pm/transform";
 import StarterKit from "@tiptap/starter-kit";
 import BulletList from "@tiptap/extension-bullet-list";
@@ -16,7 +16,8 @@ import Placeholder from "@tiptap/extension-placeholder";
 import FloatingMenu from "@tiptap/extension-floating-menu";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownMarkSpec, MarkdownNodeSpec } from "tiptap-markdown";
-import { TextSelection } from "@tiptap/pm/state";
+import { TextSelection, Plugin, PluginKey } from "@tiptap/pm/state";
+import { DOMParser } from "@tiptap/pm/model";
 import type { EditorState, Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { mount } from "svelte";
@@ -81,6 +82,106 @@ const TightTaskList = TaskList.extend({
         priority: 51,
       },
     ];
+  },
+});
+
+const MarkdownPaste = Extension.create({
+  name: "markdownPaste",
+  addProseMirrorPlugins() {
+    const { editor } = this;
+
+    return [
+      new Plugin({
+        key: new PluginKey("markdownPaste"),
+        props: {
+          handlePaste(view, event) {
+            const input = view as EditorView & {
+              input: { shiftKey: boolean };
+            };
+
+            if (input.input.shiftKey) return false;
+            if (view.state.selection.$from.parent.type.spec.code) return false;
+
+            let text = event.clipboardData?.getData("text/plain") ?? "";
+
+            if (!text.trim()) {
+              const htmlData =
+                event.clipboardData?.getData("text/html") ?? "";
+
+              if (htmlData.trim()) {
+                text =
+                  new globalThis.DOMParser().parseFromString(
+                    htmlData,
+                    "text/html",
+                  ).body?.textContent ?? "";
+              }
+            }
+
+            if (!text.trim()) return false;
+
+            const storage = editor.storage as unknown as {
+              markdown: {
+                parser: {
+                  parse(
+                    text: string,
+                    options?: { inline?: boolean },
+                  ): string;
+                };
+              };
+            };
+            const html = storage.markdown.parser.parse(text, {
+              inline: true,
+            });
+            const el = document.createElement("div");
+
+            el.innerHTML = html;
+
+            if (
+              !el.querySelector(
+                "a, strong, em, s, u, code, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, pre, table, img",
+              )
+            ) {
+              return false;
+            }
+
+            const slice = DOMParser.fromSchema(view.state.schema).parseSlice(
+              el,
+              { preserveWhitespace: true },
+            );
+
+            view.dispatch(
+              view.state.tr
+                .replaceSelection(slice)
+                .scrollIntoView()
+                .setMeta("paste", true)
+                .setMeta("uiEvent", "paste"),
+            );
+
+            return true;
+          },
+        },
+      }),
+    ];
+  },
+});
+
+const linkInputRule = new InputRule({
+  find: /\[([^\]]+)\]\(([^)\s]+)\)$/,
+  handler: ({ state, range, match }) => {
+    const url = match[2].trim();
+
+    if (!isSafeHref(url)) return null;
+
+    const { tr } = state;
+    const textEnd = range.from + 1 + match[1].length;
+
+    tr.delete(textEnd, range.to);
+    tr.delete(range.from, range.from + 1);
+    tr.addMark(
+      range.from,
+      textEnd,
+      state.schema.marks.link.create({ href: url }),
+    );
   },
 });
 
@@ -537,7 +638,12 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         },
       }),
       FileChip,
-      Link.configure({
+      MarkdownPaste,
+      Link.extend({
+        addInputRules() {
+          return [linkInputRule];
+        },
+      }).configure({
         openOnClick: false,
         autolink: true,
         linkOnPaste: true,
@@ -547,7 +653,10 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
       FootnoteDef,
       InlineMath,
       BlockMath,
-      Placeholder.configure({ placeholder: "write…" }),
+      Placeholder.configure({
+        placeholder: ({ node }) =>
+          node.type.name === "codeBlock" ? "" : "type / for commands",
+      }),
       WikiLink,
       Markdown.configure({
         html: true,

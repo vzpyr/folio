@@ -27,6 +27,7 @@ globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
 
 const { createEditor, setBody, getMarkdown } =
   await import("../src/lib/editor/editor.ts");
+const { TextSelection } = await import("prosemirror-state");
 const { renderMarkdown } = await import("../src/lib/editor/md-render.ts");
 const { parseFrontmatter, writeFrontmatter } =
   await import("../src/lib/editor/markdown.ts");
@@ -50,6 +51,19 @@ function roundtrip(md) {
   const out = getMarkdown(ed);
   ed.destroy();
   return out;
+}
+function pasteInto(ed, text, html) {
+  const fake = {
+    getData: (t) =>
+      t === "text/plain" ? text : t === "text/html" ? (html ?? "") : "",
+    files: { length: 0 },
+  };
+  const ev = new dom.window.Event("paste", {
+    bubbles: true,
+    cancelable: true,
+  });
+  Object.defineProperty(ev, "clipboardData", { value: fake });
+  ed.view.dom.dispatchEvent(ev);
 }
 
 const cases = [
@@ -570,6 +584,227 @@ for (const [name, md, mode] of cases) {
     "'/ta' + enter inserts a task list",
     types[0] === "taskList" && norm(out) === "- [ ]",
     JSON.stringify({ types, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  await new Promise((r) => setTimeout(r, 20));
+  const p = view.dom.querySelector("p.is-empty");
+  check(
+    "empty line shows the slash hint",
+    !!p && p.getAttribute("data-placeholder") === "type / for commands",
+    p?.outerHTML ?? "no placeholder",
+  );
+  const tr = view.state.tr;
+  tr.insertText("hello", 1);
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  check(
+    "hint disappears once you type",
+    !view.dom.querySelector("p.is-empty"),
+    view.dom.innerHTML,
+  );
+  view.dom.dispatchEvent(
+    new dom.window.KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const empties = [...view.dom.querySelectorAll("p.is-empty")];
+  check(
+    "enter on a typed line creates a fresh empty line with the hint",
+    empties.length === 1 &&
+      empties[0].getAttribute("data-placeholder") === "type / for commands",
+    view.dom.innerHTML,
+  );
+  ed.destroy();
+}
+
+{
+  const ed = build("```\n\n```");
+  const { view } = ed;
+  let cpos = 0;
+  ed.state.doc.descendants((n, p) => {
+    if (n.type.name === "codeBlock" && cpos === 0) cpos = p + 1;
+  });
+  const tr = view.state.tr;
+  tr.setSelection(TextSelection.create(tr.doc, cpos));
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  check(
+    "no slash hint inside an empty code block",
+    ![...view.dom.querySelectorAll("[data-placeholder]")].some(
+      (el) => el.getAttribute("data-placeholder") === "type / for commands",
+    ),
+    view.dom.innerHTML,
+  );
+  ed.destroy();
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const text = "[example](https://example.com/)";
+  const tr = view.state.tr;
+  tr.insertText(text, 1);
+  tr.setMeta("applyInputRules", { from: 1, text });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const marks = ed.state.doc
+    .toJSON()
+    .content[0].content.map((c) => c.marks?.[0]?.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "typed [text](url) becomes a link",
+    marks[0] === "link" && norm(out) === text,
+    JSON.stringify({ marks, out }),
+  );
+}
+
+{
+  const ed = build("");
+  const { view } = ed;
+  const text = "[x](javascript:alert(1))";
+  const tr = view.state.tr;
+  tr.insertText(text, 1);
+  tr.setMeta("applyInputRules", { from: 1, text });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "unsafe typed link stays literal (escaped)",
+    norm(out) === "\\[x\\](javascript:alert(1))",
+    out,
+  );
+}
+
+{
+  const ed = build("```\n```");
+  const { view } = ed;
+  let cpos = 0;
+  ed.state.doc.descendants((n, p) => {
+    if (n.type.name === "codeBlock" && cpos === 0) cpos = p + 1;
+  });
+  const text = "[example](https://example.com/)";
+  const tr = view.state.tr;
+  tr.insertText(text, cpos);
+  tr.setMeta("applyInputRules", { from: cpos, text });
+  view.dispatch(tr);
+  await new Promise((r) => setTimeout(r, 20));
+  const links = ed.state.doc.toJSON().content[0].content.filter(
+    (c) => c.marks?.[0]?.type === "link",
+  );
+  ed.destroy();
+  check(
+    "no link conversion inside a code block",
+    links.length === 0,
+    JSON.stringify(links),
+  );
+}
+
+{
+  const ed = build("");
+  pasteInto(
+    ed,
+    "[example](https://example.com/)",
+    "<p>[example](https://example.com/)</p>",
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const marks = ed.state.doc
+    .toJSON()
+    .content[0].content.map((c) => c.marks?.[0]?.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "paste with html on the clipboard still converts markdown links",
+    marks[0] === "link" && norm(out) === "[example](https://example.com/)",
+    JSON.stringify({ marks, out }),
+  );
+}
+
+{
+  const ed = build("");
+  pasteInto(ed, "", '<meta charset="utf-8"><p>[example](https://example.com/)</p>');
+  await new Promise((r) => setTimeout(r, 20));
+  const marks = ed.state.doc
+    .toJSON()
+    .content[0].content.map((c) => c.marks?.[0]?.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "html-only clipboard still converts markdown links",
+    marks[0] === "link" && norm(out) === "[example](https://example.com/)",
+    JSON.stringify({ marks, out }),
+  );
+}
+
+{
+  const ed = build("");
+  pasteInto(ed, "**bold**");
+  await new Promise((r) => setTimeout(r, 20));
+  const marks = ed.state.doc
+    .toJSON()
+    .content[0].content.map((c) => c.marks?.[0]?.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "plain-text paste of markdown still converts",
+    marks[0] === "bold" && norm(out) === "**bold**",
+    JSON.stringify({ marks, out }),
+  );
+}
+
+{
+  const ed = build("");
+  pasteInto(
+    ed,
+    "see example",
+    '<p>see <a href="https://example.com/">example</a></p>',
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const marks = ed.state.doc
+    .toJSON()
+    .content[0].content.map((c) => c.marks?.[0]?.type);
+  const out = getMarkdown(ed);
+  ed.destroy();
+  check(
+    "rich html paste with a real link is not rewritten",
+    marks[1] === "link" && norm(out) === "see [example](https://example.com/)",
+    JSON.stringify({ marks, out }),
+  );
+}
+
+{
+  const ed = build("```\n```");
+  const { view } = ed;
+  let cpos = 0;
+  ed.state.doc.descendants((n, p) => {
+    if (n.type.name === "codeBlock" && cpos === 0) cpos = p + 1;
+  });
+  const tr = view.state.tr;
+  tr.setSelection(TextSelection.create(tr.doc, cpos));
+  view.dispatch(tr);
+  pasteInto(
+    ed,
+    "[example](https://example.com/)",
+    "<p>[example](https://example.com/)</p>",
+  );
+  await new Promise((r) => setTimeout(r, 20));
+  const codeText = ed.state.doc.content.firstChild?.textContent ?? "";
+  const links = ed.state.doc.toJSON().content[0].content.filter(
+    (c) => c.marks?.[0]?.type === "link",
+  );
+  ed.destroy();
+  check(
+    "paste into a code block stays literal",
+    codeText === "[example](https://example.com/)" && links.length === 0,
+    JSON.stringify({ codeText, links }),
   );
 }
 

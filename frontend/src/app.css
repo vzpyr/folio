@@ -742,7 +742,7 @@ a,
 }
 
 .editor-wrap .folio-editor p.is-editor-empty:first-child::before,
-.editor-wrap .folio-editor p.is-empty:first-child::before {
+.editor-wrap .folio-editor p.is-empty::before {
   content: attr(data-placeholder);
   float: left;
   color: var(--fg-3);
