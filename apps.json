@@ -1,0 +1,36 @@
+{
+  "$schema": "https://github.com/SideStore/sidestore-source-types/raw/main/schema.json",
+  "name": "folio",
+  "identifier": "com.vzpyr.folio.source",
+  "sourceURL": "https://raw.githubusercontent.com/vzpyr/folio/master/apps.json",
+  "subtitle": "Minimal local-first Markdown notes app",
+  "description": "Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync.",
+  "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/master/src-tauri/icons/ios/AppIcon-512@2x.png",
+  "apps": [
+    {
+      "name": "folio",
+      "bundleIdentifier": "com.vzpyr.folio",
+      "developerName": "vzpyr",
+      "subtitle": "Minimal local-first Markdown notes app",
+      "localizedDescription": "Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync. Notes are plain .md files. Features rich media, slash commands, backlinks, deep search and vault-aware AI chat.",
+      "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/master/src-tauri/icons/ios/AppIcon-512@2x.png",
+      "tintColor": "0f0f0f",
+      "versions": [
+        {
+          "version": "0.1.1",
+          "date": "2026-08-14",
+          "localizedDescription": "Update",
+          "downloadURL": "https://github.com/vzpyr/folio/releases/download/v0.1.1/folio-0.1.1.ipa",
+          "size": 4340958
+        },
+        {
+          "version": "0.1.0",
+          "date": "2026-08-12",
+          "localizedDescription": "Release",
+          "downloadURL": "https://github.com/vzpyr/folio/releases/download/v0.1.0/folio-0.1.0.ipa",
+          "size": 1775681
+        }
+      ]
+    }
+  ]
+}

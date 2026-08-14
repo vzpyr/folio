@@ -62,6 +62,14 @@ Download the latest release from the [Releases](https://github.com/vzpyr/folio/r
 - **Android:** `.apk`
 - **iOS:** `.ipa`
 
+### AltStore / SideStore
+
+Add the source URL below in AltStore or SideStore, then install and update folio from the source like any other app.
+
+```
+https://raw.githubusercontent.com/vzpyr/folio/master/apps.json
+```
+
 ## Sync Server
 
 ### Docker
