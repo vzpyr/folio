@@ -55,6 +55,13 @@ interface TauriDialogApi {
   save?: (options: unknown) => Promise<string | null>;
 }
 
+interface TauriEventApi {
+  listen?: <T>(
+    event: string,
+    handler: (event: { payload: T }) => void,
+  ) => Promise<() => void>;
+}
+
 interface TauriPathApi {
   documentDir?: () => Promise<string>;
 }
@@ -66,6 +73,7 @@ interface TauriGlobal {
   fs?: TauriFsApi;
   http?: TauriHttpApi;
   dialog?: TauriDialogApi;
+  event?: TauriEventApi;
   path?: TauriPathApi;
 }
 
@@ -169,6 +177,16 @@ export function tauriDialog(): TauriDialogApi {
   if (!g.dialog) throw new Error("tauri dialog unavailable");
 
   return g.dialog;
+}
+
+export async function tauriListen<T>(
+  event: string,
+  handler: (payload: T) => void,
+): Promise<() => void> {
+  const fn = getGlobal().event?.listen;
+  if (!fn) throw new Error("tauri event unavailable");
+
+  return fn<T>(event, (e) => handler(e.payload));
 }
 
 export function tauriPath(): TauriPathApi {

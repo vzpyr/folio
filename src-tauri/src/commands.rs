@@ -164,6 +164,17 @@ pub fn grant_vault_scope(app: tauri::AppHandle, dir: String) -> Result<(), Strin
 }
 
 #[cfg(not(mobile))]
+#[tauri::command]
+pub fn grant_import_scope(app: tauri::AppHandle, paths: Vec<String>) -> Result<(), String> {
+    for path in paths {
+        app.fs_scope()
+            .allow_file(&path)
+            .map_err(|e| format!("could not grant access to {path}: {e}"))?;
+    }
+    Ok(())
+}
+
+#[cfg(not(mobile))]
 fn path_to_string(p: FilePath) -> String {
     match p {
         FilePath::Path(p) => p.to_string_lossy().to_string(),

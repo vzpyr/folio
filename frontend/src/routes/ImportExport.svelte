@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount, onDestroy } from "svelte";
   import { appState } from "../app.svelte.ts";
   import { buildExportZip, exportStamp } from "../lib/io/export.ts";
   import { saveFile } from "../lib/io/save.ts";
@@ -9,9 +10,14 @@
     applyImport,
     detectImportFile,
   } from "../lib/io/import.ts";
-  import type { ImportResult, ImportSource } from "../lib/io/import.ts";
+  import type {
+    ImportResult,
+    ImportSource,
+    ParsedImport,
+  } from "../lib/io/import.ts";
   import Icon from "../lib/components/Icon.svelte";
   import { untrack } from "svelte";
+  import { isTauri, invoke, tauriFs, tauriListen } from "../lib/util/tauri.ts";
 
   let props = $props<{
     onclose: () => void;
@@ -21,8 +27,7 @@
   let tab = $state<"import" | "export">(
     untrack(() => props.initialTab) ?? "import",
   );
-  let file: File | null = $state(null);
-  let cachedBytes: Uint8Array | null = $state(null);
+  let items: { name: string; bytes: Uint8Array }[] = $state([]);
   let format = $state<ImportSource>("auto");
   let formatManual = $state(false);
   let busy = $state(false);
@@ -33,6 +38,7 @@
   let exporting = $state(false);
   let exportDone = $state("");
   let noteCount = $derived(appState.index?.list.length ?? 0);
+  let unlisteners: (() => void)[] = [];
 
   const SOURCES: ImportSource[] = [
     "auto",
@@ -53,47 +59,80 @@
     evernote: "evernote export (.enex) · notes, tags, images & files",
   };
 
-  async function pickFile(f: File | null) {
-    if (!f) return;
+  function validName(name: string): boolean {
+    const lower = name.toLowerCase();
 
-    const lower = f.name.toLowerCase();
-    const isMd = lower.endsWith(".md");
-    const isEnex = lower.endsWith(".enex");
-    if (!isMd && !isEnex && !lower.endsWith(".zip")) {
-      error =
-        "please choose a .zip, .md or .enex file — folder import isn't available on web";
-      file = null;
-      cachedBytes = null;
+    return (
+      lower.endsWith(".md") ||
+      lower.endsWith(".enex") ||
+      lower.endsWith(".zip")
+    );
+  }
+
+  function addBytes(name: string, bytes: Uint8Array): void {
+    if (!validName(name)) {
+      error = "please choose .zip, .md or .enex files";
 
       return;
     }
 
-    file = f;
     error = "";
+    items = [...items, { name, bytes }];
 
-    try {
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      cachedBytes = bytes;
-
-      if (isMd) {
-        format = "markdown";
-        formatManual = true;
-      } else if (isEnex) {
-        format = "evernote";
-        formatManual = true;
-      } else if (!formatManual) {
-        format = detectImportFile(bytes);
-      }
-    } catch {
-      file = null;
-      cachedBytes = null;
-      error = "could not read file";
+    if (!formatManual && /\.zip$/i.test(name)) {
+      const detected = detectImportFile(bytes);
+      if (detected !== "auto") format = detected;
     }
   }
 
+  function addFiles(files: File[]): void {
+    const pending = files.filter((f) => validName(f.name));
+    if (pending.length === 0) {
+      error = "please choose .zip, .md or .enex files";
+
+      return;
+    }
+
+    error = "";
+    void (async () => {
+      for (const f of pending) {
+        try {
+          addBytes(f.name, new Uint8Array(await f.arrayBuffer()));
+        } catch {
+          error = "could not read file";
+        }
+      }
+    })();
+  }
+
+  async function addPaths(paths: string[]): Promise<void> {
+    if (paths.length === 0) return;
+
+    try {
+      await invoke("grant_import_scope", { paths });
+    } catch {}
+
+    const fs = tauriFs();
+    error = "";
+
+    for (const p of paths) {
+      const name = p.split(/[\\/]/).pop() ?? p;
+
+      try {
+        addBytes(name, await fs.readFile(p));
+      } catch {
+        error = `could not read ${name}`;
+      }
+    }
+  }
+
+  function removeItem(i: number): void {
+    items = items.filter((_, j) => j !== i);
+  }
+
   async function doImport() {
-    if (!file) {
-      error = "choose a zip file first";
+    if (items.length === 0) {
+      error = "choose files first";
 
       return;
     }
@@ -108,26 +147,72 @@
     result = null;
 
     try {
-      const bytes =
-        cachedBytes ?? new Uint8Array(await file.arrayBuffer());
-      const parsed = file.name.toLowerCase().endsWith(".md")
-        ? parseMarkdownFile(file.name, new TextDecoder().decode(bytes))
-        : file.name.toLowerCase().endsWith(".enex")
-          ? parseEnexFile(bytes)
-          : parseImportSource(bytes, format);
-      const res = await applyImport(store, index, parsed);
+      const merged: ParsedImport = { notes: [], attachments: new Map() };
+
+      for (const it of items) {
+        const lower = it.name.toLowerCase();
+        const parsed = lower.endsWith(".md")
+          ? parseMarkdownFile(it.name, new TextDecoder().decode(it.bytes))
+          : lower.endsWith(".enex")
+            ? parseEnexFile(it.bytes)
+            : parseImportSource(it.bytes, format);
+
+        merged.notes.push(...parsed.notes);
+        for (const [k, v] of parsed.attachments) {
+          if (!merged.attachments.has(k)) merged.attachments.set(k, v);
+        }
+      }
+
+      const res = await applyImport(store, index, merged);
 
       result = res;
-      file = null;
-      cachedBytes = null;
+      items = [];
       void appState.sync?.pushPending();
     } catch {
-      error = "could not read zip file";
+      error = "could not read file";
     } finally {
       busy = false;
       importing = false;
     }
   }
+
+  onMount(() => {
+    if (!isTauri()) return;
+
+    void (async () => {
+      try {
+        unlisteners.push(
+          await tauriListen<{ paths: string[] }>(
+            "tauri://drag-drop",
+            (payload) => {
+              dragOver = false;
+              if (payload?.paths?.length) void addPaths(payload.paths);
+            },
+          ),
+        );
+        unlisteners.push(
+          await tauriListen("tauri://drag-enter", () => (dragOver = true)),
+        );
+        unlisteners.push(
+          await tauriListen("tauri://drag-over", () => (dragOver = true)),
+        );
+        unlisteners.push(
+          await tauriListen("tauri://drag-leave", () => (dragOver = false)),
+        );
+        unlisteners.push(
+          await tauriListen(
+            "tauri://drag-cancelled",
+            () => (dragOver = false),
+          ),
+        );
+      } catch {}
+    })();
+  });
+
+  onDestroy(() => {
+    for (const fn of unlisteners) fn();
+    unlisteners = [];
+  });
 
   async function doExport() {
     const store = appState.store;
@@ -182,25 +267,36 @@
           class="dropzone"
           class:dragover={dragOver}
           ondragover={(e) => {
+            if (isTauri()) return;
             e.preventDefault();
             dragOver = true;
           }}
-          ondragleave={() => (dragOver = false)}
+          ondragleave={() => {
+            if (!isTauri()) dragOver = false;
+          }}
           ondrop={(e) => {
+            if (isTauri()) return;
             e.preventDefault();
             dragOver = false;
-            pickFile(e.dataTransfer?.files?.[0] ?? null);
+            addFiles([...(e.dataTransfer?.files ?? [])]);
           }}
         >
-          <p>drop a zip, .md or .enex file here</p>
+          <p>drop .zip, .md or .enex files here</p>
           <p class="hint">or</p>
           <label class="file-btn">
-            choose file
+            choose files
             <input
               type="file"
               accept=".zip,.md,.enex"
+              multiple
               hidden
-              onchange={(e) => pickFile(e.currentTarget.files?.[0] ?? null)}
+              onchange={(e) => {
+                const files = e.currentTarget.files
+                  ? [...e.currentTarget.files]
+                  : [];
+                e.currentTarget.value = "";
+                addFiles(files);
+              }}
             />
           </label>
         </div>
@@ -221,11 +317,31 @@
           {/each}
         </div>
         <p class="hint">{FORMAT_HINTS[format]}</p>
-        {#if file}
-          <p class="file-name">{file.name}</p>
+        {#if items.length > 0}
+          <ul class="file-list">
+            {#each items as it, i (it.name + i)}
+              <li class="file-item">
+                <span class="file-name">{it.name}</span>
+                <button
+                  class="file-remove"
+                  onclick={() => removeItem(i)}
+                  title="remove"
+                  ><Icon name="x" size={12} /></button
+                >
+              </li>
+            {/each}
+          </ul>
         {/if}
-        <button class="btn-primary" disabled={!file || busy} onclick={doImport}>
-          {importing ? "importing…" : "import"}
+        <button
+          class="btn-primary"
+          disabled={items.length === 0 || busy}
+          onclick={doImport}
+        >
+          {importing
+            ? "importing…"
+            : items.length
+              ? `import ${items.length} file${items.length > 1 ? "s" : ""}`
+              : "import"}
         </button>
         {#if error}
           <p class="error">{error}</p>
@@ -424,6 +540,40 @@
     font-size: var(--fs-sm);
     color: var(--fg-2);
     word-break: break-all;
+  }
+
+  .file-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s1);
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+  }
+
+  .file-item .file-name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-btn-xs);
+    height: var(--icon-btn-xs);
+    border-radius: var(--r-sm);
+    color: var(--fg-3);
+  }
+
+  .file-remove:hover {
+    color: var(--fg);
+    background: var(--bg-3);
   }
 
   .btn-primary {

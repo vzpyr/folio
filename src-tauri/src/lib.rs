@@ -12,7 +12,8 @@ pub fn run() {
         commands::secret_set,
         commands::secret_delete,
         commands::pick_vault_folder,
-        commands::grant_vault_scope
+        commands::grant_vault_scope,
+        commands::grant_import_scope
     ]);
     #[cfg(mobile)]
     let builder = builder.invoke_handler(tauri::generate_handler![
