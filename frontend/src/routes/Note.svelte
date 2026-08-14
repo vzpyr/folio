@@ -489,14 +489,16 @@
     const st = store;
     if (!idx || !st || !meta || loading) return;
 
-    const cur = idx.list.find((n) => n.id === meta!.id);
+    const cur = idx.all.find((n) => n.id === meta!.id);
     if (!cur) {
       if (!notFound && !unsaved) notFound = true;
 
       return;
     }
 
-    const key = `${cur.updated}:${cur.rev}:${cur.title}`;
+    if (notFound) notFound = false;
+
+    const key = `${cur.updated}:${cur.rev}:${cur.title}:${cur.folder}:${cur.trashed ?? false}:${cur.pinned}:${(cur.tags ?? []).join(",")}`;
     if (key === lastRemoteCheck) return;
 
     lastRemoteCheck = key;
@@ -517,16 +519,10 @@
 
       if (unsaved || suppressSave) return;
 
-      const { body } = parseFrontmatter(stored);
-      if (body === getMarkdown(ed)) return;
-
-      suppressSave = true;
-      for (const url of attUrls.values()) URL.revokeObjectURL(url);
-      attUrls.clear();
-      setBody(ed, body, resolveImageRef);
-
-      const { meta: fm } = parseFrontmatter(stored);
+      const { meta: fm, body } = parseFrontmatter(stored);
       const fresh: NoteMeta = { ...fmToMeta(fm, stored, cur), dirty: false };
+      const bodyChanged = body !== getMarkdown(ed);
+
       meta = fresh;
       editorBaseRev = fresh.rev;
       lastWrittenUpdated = fresh.updated;
@@ -538,6 +534,14 @@
         tags: [...fresh.tags],
       };
       unsaved = false;
+
+      if (!bodyChanged) return;
+
+      suppressSave = true;
+      for (const url of attUrls.values()) URL.revokeObjectURL(url);
+      attUrls.clear();
+      setBody(ed, body, resolveImageRef);
+
       if (pendingImageResolves === 0) {
         releaseSaveSuppress();
       }

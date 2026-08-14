@@ -1,5 +1,4 @@
 import { getSecret, setSecret, deleteSecret } from "./secrets.ts";
-import { isTauri } from "./tauri.ts";
 
 export const KEYS = {
   serverUrl: "folio:serverUrl",
@@ -83,14 +82,10 @@ export async function saveSecrets(s: {
 }
 
 export async function loadPassphrase(): Promise<string | null> {
-  if (!isTauri()) return null;
-
   return getSecret(SECRET_KEYS.passphrase);
 }
 
 export async function savePassphrase(passphrase: string): Promise<void> {
-  if (!isTauri()) return;
-
   await setSecret(SECRET_KEYS.passphrase, passphrase);
 }
 

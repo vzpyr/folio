@@ -283,16 +283,10 @@
           }}
         />
       </label>
-      {#if isDesktop()}
-        <label class="checkbox-row">
-          <input type="checkbox" bind:checked={rememberPassphrase} />
-          <span>remember passphrase (os keychain)</span>
-        </label>
-      {:else}
-        <p class="web-note">
-          on web the passphrase is never stored — re-enter it on every launch.
-        </p>
-      {/if}
+      <label class="checkbox-row">
+        <input type="checkbox" bind:checked={rememberPassphrase} />
+        <span>remember passphrase</span>
+      </label>
       {#if mismatch}
         <div class="error">
           <p>
@@ -408,13 +402,6 @@
     font-size: var(--fs-xs);
     color: var(--fg-3);
     margin-top: var(--s2);
-    text-transform: lowercase;
-  }
-
-  .web-note {
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-    margin-bottom: var(--s4);
     text-transform: lowercase;
   }
 

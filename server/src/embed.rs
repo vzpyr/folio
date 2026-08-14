@@ -15,7 +15,7 @@ fn csp(nonce: &str) -> String {
     format!(
         "default-src 'self'; script-src 'self' 'nonce-{nonce}'; \
          style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; \
-         font-src 'self'; connect-src 'self'; object-src 'none'; \
+         font-src 'self'; connect-src 'self' http: https:; object-src 'none'; \
          base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
     )
 }
@@ -94,6 +94,7 @@ mod tests {
             .unwrap()
             .to_string();
         assert!(csp.contains("script-src 'self' 'nonce-"));
+        assert!(csp.contains("connect-src 'self' http: https:"));
         let bytes = to_bytes(resp.into_body(), 1 << 20).await.unwrap();
         let body = String::from_utf8_lossy(&bytes);
         assert!(body.contains("<script nonce=\""));

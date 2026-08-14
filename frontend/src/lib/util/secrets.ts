@@ -1,7 +1,5 @@
 import { isTauri, invoke } from "./tauri.ts";
 
-const webMemory = new Map<string, string>();
-
 export async function getSecret(key: string): Promise<string | null> {
   if (isTauri()) {
     try {
@@ -10,7 +8,7 @@ export async function getSecret(key: string): Promise<string | null> {
     } catch {}
   }
 
-  return sessionStorage.getItem(key) ?? webMemory.get(key) ?? null;
+  return localStorage.getItem(key);
 }
 
 export async function setSecret(key: string, value: string): Promise<void> {
@@ -21,8 +19,7 @@ export async function setSecret(key: string, value: string): Promise<void> {
     } catch {}
   }
 
-  sessionStorage.setItem(key, value);
-  webMemory.set(key, value);
+  localStorage.setItem(key, value);
 }
 
 export async function deleteSecret(key: string): Promise<void> {
@@ -32,6 +29,5 @@ export async function deleteSecret(key: string): Promise<void> {
     } catch {}
   }
 
-  sessionStorage.removeItem(key);
-  webMemory.delete(key);
+  localStorage.removeItem(key);
 }
