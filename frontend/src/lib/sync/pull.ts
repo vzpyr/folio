@@ -72,9 +72,6 @@ export async function pull(ctx: SyncContext): Promise<void> {
 
   if (changes.length === 0) return;
 
-  const localNow = new Map<string, NoteMeta>();
-  for (const n of await store.listNotes()) localNow.set(n.id, n);
-
   for (const c of changes) {
     const { opened } = c;
 
@@ -93,7 +90,10 @@ export async function pull(ctx: SyncContext): Promise<void> {
         ledger.setTomb(attKey(id), c.rev);
       }
     } else {
-      if (localNow.get(opened.id)?.dirty) continue;
+      const freshLocal = (await store.listNotes()).find(
+        (n) => n.id === opened.id,
+      );
+      if (freshLocal?.dirty) continue;
 
       if (key && ledger.has(key)) {
         await store.deleteNote(opened.id);
@@ -116,7 +116,9 @@ export async function pull(ctx: SyncContext): Promise<void> {
     const md = new TextDecoder().decode(opened.payload);
     const { meta: fm } = parseFrontmatter(md);
     const now = Date.now();
-    const localMeta = localNow.get(opened.id);
+    const localMeta = (await store.listNotes()).find(
+      (n) => n.id === opened.id,
+    );
 
     if (localMeta?.dirty) continue;
 

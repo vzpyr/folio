@@ -340,6 +340,161 @@ try {
       (await meta(B, NOTE8))?.dirty !== true,
   );
 
+  clearNotices();
+  const SOLO = crypto.randomUUID();
+  await writeNote(A, SOLO, "solo", "version one");
+  await A.engine.sync();
+  check(
+    "solo setup: clean at rev 1",
+    (await meta(A, SOLO))?.rev === 1 && (await meta(A, SOLO))?.dirty !== true,
+  );
+
+  await writeNote(A, SOLO, "solo", "version two", "", 1);
+  const realPut = A.engine.api.putItem.bind(A.engine.api);
+  let soloPuts = 0;
+  A.engine.api.putItem = async (...args) => {
+    soloPuts += 1;
+    if (soloPuts === 1) {
+      await writeNote(A, SOLO, "solo", "version three", "", 1);
+    }
+    return realPut(...args);
+  };
+  await A.engine.sync();
+  A.engine.api.putItem = realPut;
+
+  check(
+    "solo: newer edit survived the in-flight push",
+    (await A.store.readNote(SOLO))?.includes("version three") === true,
+  );
+  check(
+    "solo: note still dirty with advanced rev",
+    (await meta(A, SOLO))?.dirty === true && (await meta(A, SOLO))?.rev === 2,
+  );
+
+  await A.engine.sync();
+  const soloMeta = await meta(A, SOLO);
+  const soloConflicts = (await A.store.listNotes()).filter((n) =>
+    /^solo \(conflict /.test(n.title),
+  );
+  check(
+    "solo: follow-up push published the newer edit",
+    (await A.store.readNote(SOLO))?.includes("version three") === true,
+  );
+  check(
+    "solo: clean at rev 3",
+    soloMeta?.dirty !== true && soloMeta?.rev === 3,
+  );
+  check("solo: no self-inflicted conflict copy", soloConflicts.length === 0);
+  check(
+    "solo: no conflict notice",
+    !syncNotices.some((n) => n.kind === "conflict"),
+  );
+  await B.engine.sync();
+  check(
+    "solo: server holds the newest content",
+    (await B.store.readNote(SOLO))?.includes("version three") === true,
+  );
+
+  clearNotices();
+  const STALE = crypto.randomUUID();
+  await writeNote(A, STALE, "stale-rev", "content one");
+  await A.engine.sync();
+  await writeNote(A, STALE, "stale-rev", "content two", "", 1);
+  await A.engine.sync();
+  check(
+    "stale-rev setup: clean at rev 2",
+    (await meta(A, STALE))?.rev === 2 &&
+      (await meta(A, STALE))?.dirty !== true,
+  );
+  await writeNote(A, STALE, "stale-rev", "content three", "", 1);
+  await A.engine.sync();
+  const staleMeta = await meta(A, STALE);
+  const staleConflicts = (await A.store.listNotes()).filter((n) =>
+    /^stale-rev \(conflict /.test(n.title),
+  );
+  check(
+    "stale-rev: stale base rebased without a conflict copy",
+    staleConflicts.length === 0,
+  );
+  check(
+    "stale-rev: no conflict notice",
+    !syncNotices.some((n) => n.kind === "conflict"),
+  );
+  check(
+    "stale-rev: newest content kept under the original id",
+    (await A.store.readNote(STALE))?.includes("content three") === true,
+  );
+  check(
+    "stale-rev: clean at rev 3",
+    staleMeta?.dirty !== true && staleMeta?.rev === 3,
+  );
+
+  clearNotices();
+  const PULL_A = "00000000-0000-4000-8000-00000000000a";
+  const PULL_B = "00000000-0000-4000-8000-00000000000b";
+  await writeNote(A, PULL_A, "pull-race-other", "other v1");
+  await writeNote(A, PULL_B, "pull-race", "base content");
+  await A.engine.sync();
+  await B.engine.sync();
+  check(
+    "pull-race setup: both notes at rev 1 on b",
+    (await meta(B, PULL_A))?.rev === 1 &&
+      (await meta(B, PULL_B))?.rev === 1,
+  );
+
+  await writeNote(A, PULL_A, "pull-race-other", "other v2", "", 1);
+  await writeNote(A, PULL_B, "pull-race", "remote content", "", 1);
+  await A.engine.sync();
+
+  const realBWrite = B.store.writeNote.bind(B.store);
+  let injected = false;
+  B.store.writeNote = async (id, m, md) => {
+    if (!injected && id === PULL_A && m.dirty === false) {
+      injected = true;
+      await writeNote(
+        B,
+        PULL_B,
+        "pull-race",
+        "local typing during pull",
+        "",
+        1,
+      );
+    }
+    return realBWrite(id, m, md);
+  };
+  await B.engine.sync();
+  B.store.writeNote = realBWrite;
+
+  check(
+    "pull-race: local typing survived the pull",
+    (await B.store.readNote(PULL_B))?.includes("local typing during pull") ===
+      true,
+  );
+  check(
+    "pull-race: note stayed dirty after the pull",
+    (await meta(B, PULL_B))?.dirty === true,
+  );
+
+  await B.engine.sync();
+  const bPullCopies = (await B.store.listNotes()).filter((n) =>
+    /^pull-race \(conflict /.test(n.title),
+  );
+  const bPullCopyContents = await Promise.all(
+    bPullCopies.map((c) => B.store.readNote(c.id)),
+  );
+  check(
+    "pull-race: local typing preserved (original or conflict copy)",
+    (await B.store.readNote(PULL_B))?.includes("local typing during pull") ===
+        true ||
+      bPullCopyContents.some(
+        (c) => c?.includes("local typing during pull") === true,
+      ),
+  );
+  check(
+    "pull-race: resolved clean after sync",
+    (await meta(B, PULL_B))?.dirty !== true,
+  );
+
   const NOTE6 = crypto.randomUUID();
   const NOTE9 = crypto.randomUUID();
 

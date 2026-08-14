@@ -78,9 +78,7 @@ export class Ledger {
   baseRevFor(noteKey: string, metaRev: number): number {
     const latest = this.revs.get(noteKey);
 
-    if (latest !== undefined) {
-      return metaRev > 0 ? Math.min(metaRev, latest) : latest;
-    }
+    if (latest !== undefined) return latest;
 
     return metaRev > 0 ? metaRev : 0;
   }

@@ -79,10 +79,24 @@ async function pushOneNote(
   const res = await api.putItem(opaque, baseRev, nonce, blob);
 
   if (res.ok) {
-    meta.rev = res.rev;
-    meta.dirty = false;
     ledger.set(meta.id, res.rev);
-    await store.writeNote(meta.id, meta, content);
+
+    const current = (await store.listNotes()).find((n) => n.id === meta.id);
+    const currentContent = current ? await store.readNote(meta.id) : null;
+    const unchanged =
+      !!current &&
+      currentContent !== null &&
+      currentContent === content &&
+      (current.updated ?? 0) === (meta.updated ?? 0);
+
+    if (unchanged) {
+      meta.rev = res.rev;
+      meta.dirty = false;
+      await store.writeNote(meta.id, meta, content);
+    } else if (current) {
+      const merged: NoteMeta = { ...current, rev: res.rev, dirty: true };
+      await store.writeNote(meta.id, merged, currentContent ?? content);
+    }
 
     return;
   }

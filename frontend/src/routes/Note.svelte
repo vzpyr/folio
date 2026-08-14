@@ -69,7 +69,6 @@
     pinned: false,
     tags: [] as string[],
   };
-  let editorBaseRev = -1;
   let lastWrittenUpdated = 0;
 
   let displaySync = $derived(
@@ -211,7 +210,7 @@
         pinned: meta?.pinned ?? false,
         created: meta?.created ?? Date.now(),
         updated: Date.now(),
-        rev: stale ? editorBaseRev : (cur?.rev ?? meta?.rev ?? -1),
+        rev: cur?.rev ?? meta?.rev ?? -1,
         conflict: meta?.conflict ?? false,
         trashed: meta?.trashed ?? cur?.trashed ?? false,
         dirty: true,
@@ -524,7 +523,6 @@
       const bodyChanged = body !== getMarkdown(ed);
 
       meta = fresh;
-      editorBaseRev = fresh.rev;
       lastWrittenUpdated = fresh.updated;
       savedSnapshot = {
         body,
@@ -583,7 +581,6 @@
     const { meta: fm } = parseFrontmatter(content);
     const stored = (await st.listNotes()).find((n) => n.id === realId) ?? null;
     meta = fmToMeta(fm, content, stored);
-    editorBaseRev = stored?.rev ?? -1;
     lastWrittenUpdated = stored?.updated ?? 0;
     unsaved = false;
 
