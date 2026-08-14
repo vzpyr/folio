@@ -1,6 +1,6 @@
 [package]
 name = "folio"
-version = "0.1.1"
+version = "0.1.2"
 description = "Minimal local-first Markdown notes app with WYSIWYG editing and optional E2EE sync"
 edition = "2024"
 
