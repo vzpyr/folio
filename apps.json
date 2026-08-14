@@ -17,6 +17,13 @@
       "tintColor": "0f0f0f",
       "versions": [
         {
+          "version": "0.1.2",
+          "date": "2026-08-14",
+          "localizedDescription": "Update",
+          "downloadURL": "https://github.com/vzpyr/folio/releases/download/v0.1.2/folio-0.1.2.ipa",
+          "size": 4337919
+        },
+        {
           "version": "0.1.1",
           "date": "2026-08-14",
           "localizedDescription": "Update",
