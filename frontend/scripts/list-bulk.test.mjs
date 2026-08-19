@@ -343,4 +343,70 @@ check(
   })(),
 );
 
+const menuWrap = rows()[0].querySelector(".note-menu-wrap");
+click(menuWrap);
+await sleep();
+const noteMenu = el.querySelector(".note-menu");
+check("three dot menu opens", !!noteMenu);
+check(
+  "three dot menu has standardized actions",
+  noteMenu?.textContent?.includes("move to") &&
+    noteMenu?.textContent?.includes("trash") &&
+    noteMenu?.textContent?.includes("pin") &&
+    noteMenu?.textContent?.includes("export"),
+);
+
+const moveBtn = [...noteMenu.querySelectorAll(".menu-item")].find((b) =>
+  b.textContent.includes("move to"),
+);
+click(moveBtn);
+await sleep();
+check(
+  "three dot menu shows folders after move to click",
+  noteMenu.textContent.includes("work"),
+);
+
+const workFolderBtn = [...noteMenu.querySelectorAll(".menu-item")].find(
+  (b) => b.textContent.trim() === "work",
+);
+click(workFolderBtn);
+await sleep();
+check("note moved to work folder", idx.getById("note-1")?.folder === "work");
+
+appState.searchQuery = "body";
+await sleep();
+check("search matches notes", rows().length > 0);
+const initialSearchCount = rows().length;
+await store.writeNote(
+  "note-1",
+  { ...store.notes.get("note-1").meta, trashed: true },
+  store.notes.get("note-1").content,
+);
+await idx.upsert(
+  { ...store.notes.get("note-1").meta, trashed: true },
+  store.notes.get("note-1").content,
+);
+await sleep();
+check(
+  "search reactively updates when note trashed",
+  rows().length === initialSearchCount - 1,
+);
+
+appState.filterTrash = true;
+await sleep();
+check("search in trash shows trashed note", rows().length === 1);
+
+appState.searchQuery = "";
+appState.filterTrash = false;
+await store.writeNote(
+  "note-1",
+  { ...store.notes.get("note-1").meta, trashed: false },
+  store.notes.get("note-1").content,
+);
+await idx.upsert(
+  { ...store.notes.get("note-1").meta, trashed: false },
+  store.notes.get("note-1").content,
+);
+await sleep();
+
 done("list-bulk");

@@ -12,15 +12,28 @@
   let pendingEdits = $derived(appState.pendingEdits);
   let lastError = $derived(appState.lastError);
   let lastSync = $derived(appState.lastSync);
+  let isConfigured = $derived(
+    !!sync || syncStatus === "offline" || syncStatus === "error",
+  );
   let syncing = $derived(
     !!sync && (syncStatus === "syncing" || pendingEdits > 0),
   );
   let synced = $derived(
     !!sync && syncStatus === "synced" && pendingEdits === 0,
   );
-  let offline = $derived(!sync && !!lastError);
+  let offline = $derived(
+    syncStatus === "offline" ||
+      syncStatus === "error" ||
+      (isConfigured && !syncing && !synced),
+  );
   let kind = $derived(
-    syncing ? "syncing" : synced ? "synced" : offline ? "offline" : "local",
+    !isConfigured
+      ? "local"
+      : syncing
+        ? "syncing"
+        : synced
+          ? "synced"
+          : "offline",
   );
   let iconName: IconName = $derived(
     syncing
@@ -32,15 +45,15 @@
           : "cloud-off",
   );
   let label = $derived(
-    syncing
-      ? pendingEdits > 0
-        ? "saving…"
-        : "syncing…"
-      : synced
-        ? "synced"
-        : offline
-          ? "sync offline"
-          : "local only",
+    !isConfigured
+      ? "local only"
+      : syncing
+        ? pendingEdits > 0
+          ? "saving…"
+          : "syncing…"
+        : synced
+          ? "synced"
+          : "sync offline",
   );
   let detail = $derived(
     lastError
@@ -49,7 +62,9 @@
         ? `last synced ${formatRelative(lastSync)}`
         : kind === "local"
           ? "no server linked — notes are stored only on this device."
-          : "",
+          : kind === "offline" && lastSync
+            ? `last synced ${formatRelative(lastSync)}`
+            : "",
   );
   let open = $state(false);
 

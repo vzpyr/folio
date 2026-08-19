@@ -32,6 +32,7 @@
   let tagList = $derived(index?.tagList ?? []);
   let unassignedOnly = $derived(appState.unassignedOnly);
   let openMenu = $state<string | null>(null);
+  let menuMoveId = $state<string | null>(null);
   let moveOpen = $state(false);
   let folderNames = $state<string[]>([]);
   let selected = $state(new Set<string>());
@@ -39,6 +40,7 @@
   let notes = $derived.by(() => {
     if (!index) return [];
 
+    const _reactive = [index.list, index.trashList];
     const q = search.trim();
 
     if (q) {
@@ -271,9 +273,18 @@
     if (await bulkDelete(ids)) clearSelection();
   }
 
+  async function moveNote(e: Event, id: string, folder: string) {
+    e.stopPropagation();
+    openMenu = null;
+    menuMoveId = null;
+    await bulkSetFolder([id], folder);
+    flushSync();
+  }
+
   async function trashNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
+    menuMoveId = null;
     await bulkTrash([id]);
     flushSync();
   }
@@ -281,6 +292,7 @@
   async function restoreNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
+    menuMoveId = null;
     await bulkRestore([id]);
     flushSync();
   }
@@ -288,17 +300,20 @@
   async function deleteNote(e: Event, id: string) {
     e.stopPropagation();
     openMenu = null;
+    menuMoveId = null;
     await bulkDelete([id]);
   }
 
   async function togglePin(e: Event, id: string) {
     e.stopPropagation();
+    menuMoveId = null;
     await bulkTogglePin([id]);
     flushSync();
   }
 
   function toggleMenu(e: Event, id: string) {
     e.stopPropagation();
+    menuMoveId = null;
     openMenu = openMenu === id ? null : id;
   }
 
@@ -310,13 +325,20 @@
       clearSelection();
     } else if (moveOpen) {
       moveOpen = false;
+    } else if (menuMoveId) {
+      menuMoveId = null;
     } else {
       openMenu = null;
     }
   }
 </script>
 
-<svelte:document onclick={() => (openMenu = null)} />
+<svelte:document
+  onclick={() => {
+    openMenu = null;
+    menuMoveId = null;
+  }}
+/>
 <svelte:window onkeydown={onKeydown} />
 
 <main class="note-list">
@@ -504,16 +526,51 @@
                           class="menu-item"
                           onclick={(e) => deleteNote(e, note.id)}>delete</button
                         >
+                      {:else if menuMoveId === note.id}
+                        <button
+                          class="menu-item"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            menuMoveId = null;
+                          }}>← back</button
+                        >
+                        <div class="menu-sep"></div>
+                        <button
+                          class="menu-item"
+                          onclick={(e) => moveNote(e, note.id, "")}
+                          >all notes</button
+                        >
+                        {#each allFolders as name (name)}
+                          <button
+                            class="menu-item"
+                            onclick={(e) => moveNote(e, note.id, name)}
+                            >{name}</button
+                          >
+                        {/each}
                       {:else}
+                        <button
+                          class="menu-item"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            menuMoveId = note.id;
+                          }}>move to</button
+                        >
                         <button
                           class="menu-item"
                           onclick={(e) => trashNote(e, note.id)}>trash</button
                         >
+                        <button
+                          class="menu-item"
+                          onclick={(e) => togglePin(e, note.id)}
+                          >{note.pinned ? "unpin" : "pin"}</button
+                        >
                       {/if}
-                      <button
-                        class="menu-item"
-                        onclick={(e) => exportNote(e, note.id)}>export</button
-                      >
+                      {#if menuMoveId !== note.id}
+                        <button
+                          class="menu-item"
+                          onclick={(e) => exportNote(e, note.id)}>export</button
+                        >
+                      {/if}
                     </div>
                   {/if}
                 </span>
@@ -889,6 +946,20 @@
 
   .menu-item:hover {
     background: var(--bg-3);
+    color: var(--fg);
+  }
+
+  .menu-sep {
+    height: 1px;
+    background: var(--border);
+    margin: var(--pad-xs) 0;
+  }
+
+  .menu-back {
+    color: var(--fg-3);
+  }
+
+  .menu-back:hover {
     color: var(--fg);
   }
 

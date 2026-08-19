@@ -57,6 +57,7 @@ async function forkConflict(
   };
 
   await store.writeNote(newId, newMeta, newContent);
+  await ctx.index.upsert(newMeta, newContent);
 
   addNotice(
     "conflict",
@@ -92,6 +93,14 @@ export async function resolveNoteConflict(
     !!cur && cur.dirty === true && (cur.updated ?? 0) > (meta.updated ?? 0);
 
   if (winner.deleted) {
+    if ((meta.updated ?? 0) > (winner.updated ?? 0)) {
+      ledger.set(id, env.rev);
+      meta.rev = env.rev;
+      meta.dirty = true;
+      await store.writeNote(id, meta, content);
+      return;
+    }
+
     await forkConflict(ctx, meta, content);
 
     if (!modifiedSince) {
@@ -109,12 +118,37 @@ export async function resolveNoteConflict(
   if (remoteBody === localBody) {
     meta.rev = env.rev;
     meta.dirty = false;
-    const { meta: rfm } = parseFrontmatter(remote);
-    meta.trashed = rfm.trashed ?? meta.trashed ?? false;
     ledger.set(id, env.rev);
-    await store.writeNote(id, meta, remote);
+    await store.writeNote(id, meta, content);
+    await ctx.index.upsert(meta, content);
 
     return;
+  }
+
+  if ((meta.updated ?? 0) > (winner.updated ?? 0)) {
+    ledger.set(id, env.rev);
+    meta.rev = env.rev;
+    meta.dirty = true;
+    await store.writeNote(id, meta, content);
+    await ctx.index.upsert(meta, content);
+
+    const { nonce, blob } = await sealEnvelope(
+      keys,
+      id,
+      "note",
+      meta.updated,
+      false,
+      new TextEncoder().encode(content),
+    );
+    const retry = await api.putItem(opaque, env.rev, nonce, blob);
+    if (retry.ok) {
+      ledger.set(id, retry.rev);
+      meta.rev = retry.rev;
+      meta.dirty = false;
+      await store.writeNote(id, meta, content);
+      await ctx.index.upsert(meta, content);
+      return;
+    }
   }
 
   await forkConflict(ctx, meta, content);
@@ -152,6 +186,7 @@ async function applyWinner(
   };
 
   await store.writeNote(id, winnerMeta, remote);
+  await ctx.index.upsert(winnerMeta, remote);
 }
 
 export async function resolveRegistryConflict(

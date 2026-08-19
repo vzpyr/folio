@@ -403,8 +403,7 @@ try {
   await A.engine.sync();
   check(
     "stale-rev setup: clean at rev 2",
-    (await meta(A, STALE))?.rev === 2 &&
-      (await meta(A, STALE))?.dirty !== true,
+    (await meta(A, STALE))?.rev === 2 && (await meta(A, STALE))?.dirty !== true,
   );
   await writeNote(A, STALE, "stale-rev", "content three", "", 1);
   await A.engine.sync();
@@ -438,8 +437,7 @@ try {
   await B.engine.sync();
   check(
     "pull-race setup: both notes at rev 1 on b",
-    (await meta(B, PULL_A))?.rev === 1 &&
-      (await meta(B, PULL_B))?.rev === 1,
+    (await meta(B, PULL_A))?.rev === 1 && (await meta(B, PULL_B))?.rev === 1,
   );
 
   await writeNote(A, PULL_A, "pull-race-other", "other v2", "", 1);
@@ -485,7 +483,7 @@ try {
   check(
     "pull-race: local typing preserved (original or conflict copy)",
     (await B.store.readNote(PULL_B))?.includes("local typing during pull") ===
-        true ||
+      true ||
       bPullCopyContents.some(
         (c) => c?.includes("local typing during pull") === true,
       ),

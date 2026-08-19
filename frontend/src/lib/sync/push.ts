@@ -65,7 +65,7 @@ async function pushOneNote(
   meta: NoteMeta,
   content: string,
 ): Promise<void> {
-  const { store, ledger, api, keys } = ctx;
+  const { store, ledger, api, keys, index } = ctx;
   const opaque = await opaqueId(keys, meta.id);
   const { nonce, blob } = await sealEnvelope(
     keys,
@@ -93,9 +93,11 @@ async function pushOneNote(
       meta.rev = res.rev;
       meta.dirty = false;
       await store.writeNote(meta.id, meta, content);
+      await index.upsert(meta, content);
     } else if (current) {
       const merged: NoteMeta = { ...current, rev: res.rev, dirty: true };
       await store.writeNote(meta.id, merged, currentContent ?? content);
+      await index.upsert(merged, currentContent ?? content);
     }
 
     return;

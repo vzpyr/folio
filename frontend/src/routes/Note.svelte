@@ -71,16 +71,6 @@
   };
   let lastWrittenUpdated = 0;
 
-  let displaySync = $derived(
-    sync
-      ? sync.status === "synced"
-        ? unsaved
-          ? "saving…"
-          : "synced"
-        : sync.status
-      : "",
-  );
-
   const attUrls = new Map<string, string>();
 
   function resolveImageRef(ref: string): Promise<string | null> {
@@ -743,7 +733,6 @@
         }}
       />
       <span class="spacer"></span>
-      <span class="sync-mini">{displaySync}</span>
       <button
         class="btn-pin"
         class:active={meta?.pinned}
@@ -868,11 +857,18 @@
         placeholder="+ tag"
         list="tag-options"
         onkeydown={(e) => {
-          if (e.key === "Enter") addTag();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.stopPropagation();
+            addTag();
+          }
           if (e.key === "Backspace" && !tagInput && meta?.tags.length) {
             removeTag(meta.tags.length - 1);
           }
           if (e.key === "Escape") e.currentTarget.blur();
+        }}
+        onblur={() => {
+          if (tagInput.trim()) addTag();
         }}
       />
       <datalist id="tag-options">
@@ -1042,7 +1038,8 @@
     padding: 0 var(--ctl-px);
     height: var(--ctl-h);
     min-width: 60px;
-    width: 30ch;
+    flex: 1;
+    max-width: var(--maxw-editor);
   }
 
   .note-title-input:hover {
@@ -1056,12 +1053,6 @@
 
   .spacer {
     flex: 1;
-  }
-
-  .sync-mini {
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-    text-transform: lowercase;
   }
 
   .btn-pin,
@@ -1412,16 +1403,10 @@
 
   @media (max-width: 800px) {
     .note-title-input {
-      width: auto;
-      flex: 1;
-      min-width: 0;
+      max-width: none;
     }
 
     .spacer {
-      display: none;
-    }
-
-    .sync-mini {
       display: none;
     }
   }

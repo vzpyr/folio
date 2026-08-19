@@ -116,11 +116,14 @@ export async function pull(ctx: SyncContext): Promise<void> {
     const md = new TextDecoder().decode(opened.payload);
     const { meta: fm } = parseFrontmatter(md);
     const now = Date.now();
-    const localMeta = (await store.listNotes()).find(
-      (n) => n.id === opened.id,
-    );
+    const localMeta = (await store.listNotes()).find((n) => n.id === opened.id);
 
-    if (localMeta?.dirty) continue;
+    if (localMeta?.dirty) {
+      if ((localMeta.updated ?? 0) >= (opened.updated ?? 0)) {
+        ledger.set(opened.id, c.rev);
+      }
+      continue;
+    }
 
     const title = fm.title ?? extractTitle(md, opened.id);
     const meta: NoteMeta = {
