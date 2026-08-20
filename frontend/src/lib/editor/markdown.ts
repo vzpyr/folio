@@ -65,13 +65,35 @@ export function writeFrontmatter(fm: Frontmatter, body: string): string {
   return lines.join("\n");
 }
 
+export function cleanDerivedTitle(raw: string): string {
+  let title = raw
+    .replace(/\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]*))?\]\]/g, (_m, t, a) => a || t)
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, "");
+
+  title = title
+    .replace(/(^|[^\\])\*\*([^*]+)\*\*/g, "$1$2")
+    .replace(/(^|[^\\])\*([^*]+)\*/g, "$1$2")
+    .replace(/(^|[^\\])__([^_]+)__/g, "$1$2")
+    .replace(/(^|[^\\])_([^_]+)_/g, "$1$2")
+    .replace(/(^|[^\\])~~([^~]+)~~/g, "$1$2")
+    .replace(/(^|[^\\])`([^`]+)`/g, "$1$2");
+
+  title = title.replace(/\\([\\`*_{}[\]()#+\-.!~<>])/g, "$1");
+
+  return title.trim();
+}
+
 export function extractTitle(content: string, id: string): string {
   const { meta, body } = parseFrontmatter(content);
 
   if (meta.title) return meta.title;
 
   const heading = body.match(/^#\s+(.+)$/m);
-  if (heading) return heading[1].trim();
+  if (heading) {
+    const cleaned = cleanDerivedTitle(heading[1]);
+    if (cleaned) return cleaned;
+  }
 
   return id.slice(0, 8);
 }

@@ -2,6 +2,7 @@ import {
   parseFrontmatter,
   writeFrontmatter,
   extractTitle,
+  cleanDerivedTitle,
   extractWikiLinks,
 } from "../editor/markdown.ts";
 import { isFolderRegistryId } from "./folders.ts";
@@ -638,4 +639,4 @@ export class NoteIndex {
   }
 }
 
-export { parseFrontmatter, writeFrontmatter, extractTitle };
+export { parseFrontmatter, writeFrontmatter, extractTitle, cleanDerivedTitle };

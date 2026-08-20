@@ -28,7 +28,7 @@ globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(
 const { createEditor, setBody, getMarkdown } =
   await import("../src/lib/editor/editor.ts");
 const { TextSelection } = await import("prosemirror-state");
-const { parseFrontmatter, writeFrontmatter } =
+const { parseFrontmatter, writeFrontmatter, extractTitle, cleanDerivedTitle } =
   await import("../src/lib/editor/markdown.ts");
 
 const norm = (s) => s.replace(/\s+$/, "");
@@ -796,6 +796,46 @@ for (const [name, md, mode] of cases) {
     "paste into a code block stays literal",
     codeText === "[example](https://example.com/)" && links.length === 0,
     JSON.stringify({ codeText, links }),
+  );
+}
+
+{
+  check(
+    "cleanDerivedTitle unescapes asterisk",
+    cleanDerivedTitle("\\* my header") === "* my header",
+  );
+  check(
+    "cleanDerivedTitle unescapes multiple asterisks",
+    cleanDerivedTitle("\\*\\*stars\\*\\*") === "**stars**",
+  );
+  check(
+    "cleanDerivedTitle strips bold formatting",
+    cleanDerivedTitle("**bold title**") === "bold title",
+  );
+  check(
+    "cleanDerivedTitle strips italic formatting",
+    cleanDerivedTitle("*italic title*") === "italic title",
+  );
+  check(
+    "cleanDerivedTitle strips inline code",
+    cleanDerivedTitle("`code title`") === "code title",
+  );
+  check(
+    "cleanDerivedTitle strips html tags",
+    cleanDerivedTitle("<u>underlined title</u>") === "underlined title",
+  );
+  check(
+    "cleanDerivedTitle unescapes other markdown escapes",
+    cleanDerivedTitle("\\# \\_underline\\_ and \\[brackets\\]") ===
+      "# _underline_ and [brackets]",
+  );
+  check(
+    "extractTitle handles escaped asterisk heading",
+    extractTitle("# \\* asterisk title", "id-12345678") === "* asterisk title",
+  );
+  check(
+    "extractTitle handles formatted heading",
+    extractTitle("# **bold heading**", "id-12345678") === "bold heading",
   );
 }
 

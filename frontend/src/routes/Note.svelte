@@ -11,16 +11,22 @@
     parseFrontmatter,
     writeFrontmatter,
     extractTitle,
+    cleanDerivedTitle,
   } from "../lib/editor/markdown.ts";
   import { formatTimestamp } from "../lib/util/format.ts";
   import Icon from "../lib/components/Icon.svelte";
   import { folderRegistry, setNoteFolder } from "../lib/store/folders.ts";
   import { mobile } from "../lib/util/mobile.svelte.ts";
   import { clickOutside, autofocus } from "../lib/util/dom.ts";
+  import { buildNoteExport } from "../lib/io/export.ts";
+  import { saveFile } from "../lib/io/save.ts";
+  import { addNotice } from "../lib/sync/notices.svelte.ts";
+  import { flushSync } from "../lib/bulk.ts";
+  import { setTrashed, type NoteMeta } from "../lib/store/store.svelte.ts";
+  import { folderSignal } from "../lib/util/signals.svelte.ts";
   import WikiPicker from "../lib/components/WikiPicker.svelte";
   import FindReplaceBar from "../lib/components/FindReplaceBar.svelte";
   import type { Editor } from "@tiptap/core";
-  import type { NoteMeta } from "../lib/store/store.svelte.ts";
   import type { Frontmatter } from "../lib/editor/markdown.ts";
 
   const { id }: { id: string } = $props();
@@ -38,8 +44,10 @@
   let meta = $state<NoteMeta | null>(null);
   let backlinks = $derived(index?.backlinks(id) ?? []);
   let backlinksOpen = $state(false);
+  let openMenu = $state(false);
+  let menuMove = $state(false);
   let folderInput = $state("");
-  let folderOpen = $state(false);
+  let folderNames = $state<string[]>([]);
   let tagInput = $state("");
   let tagSuggestions = $derived(
     (index?.tagList ?? []).filter((t) => !(meta?.tags ?? []).includes(t.tag)),
@@ -330,9 +338,42 @@
     void doSave();
   }
 
-  function toggleFolder() {
-    if (!folderOpen) folderInput = meta?.folder ?? "";
-    folderOpen = !folderOpen;
+  $effect(() => {
+    appState.lastSync;
+    folderSignal();
+    void refreshFolders();
+  });
+
+  async function refreshFolders() {
+    const st = store;
+    if (!st) return;
+
+    await folderRegistry.load(st);
+    folderNames = [...folderRegistry.names];
+  }
+
+  let allFolders = $derived(
+    [...folderNames].sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    ),
+  );
+
+  async function moveToFolder(folder: string) {
+    const st = store;
+    const idx = index;
+    if (!st || !idx || !meta) return;
+
+    openMenu = false;
+    menuMove = false;
+    folderInput = folder;
+    await setNoteFolder(st, idx, meta.id, folder, folderRegistry);
+
+    const fresh = idx.getById(meta.id);
+    if (fresh) meta = fresh;
+
+    lastWrittenUpdated = meta.updated;
+    savedSnapshot = { ...savedSnapshot, folder: meta.folder };
+    flushSync();
   }
 
   async function saveFolder() {
@@ -340,15 +381,48 @@
     const idx = index;
     if (!st || !idx || !meta) return;
 
-    folderOpen = false;
-    await setNoteFolder(st, idx, meta.id, folderInput, folderRegistry);
+    openMenu = false;
+    menuMove = false;
+    await setNoteFolder(st, idx, meta.id, folderInput.trim(), folderRegistry);
 
     const fresh = idx.getById(meta.id);
     if (fresh) meta = fresh;
 
     lastWrittenUpdated = meta.updated;
     savedSnapshot = { ...savedSnapshot, folder: meta.folder };
-    void sync?.sync();
+    flushSync();
+  }
+
+  async function exportCurrentNote() {
+    const st = store;
+    if (!st || !meta) return;
+
+    openMenu = false;
+    menuMove = false;
+    try {
+      const res = await buildNoteExport(st, [meta.id]);
+      if (!res) return;
+
+      const outcome = await saveFile(res.name, res.bytes);
+      if (outcome === "saved") addNotice("info", `exported ${res.name}`);
+    } catch {
+      addNotice("error", "export failed");
+    }
+  }
+
+  async function trashCurrentNote() {
+    const st = store;
+    const idx = index;
+    if (!st || !idx || !meta) return;
+
+    openMenu = false;
+    menuMove = false;
+    if (saveTimer) clearTimeout(saveTimer);
+    suppressSave = true;
+    meta = { ...meta, trashed: true, dirty: true };
+    await setTrashed(st, idx, meta.id, true);
+    flushSync();
+    navigate("");
   }
 
   function togglePin() {
@@ -633,8 +707,12 @@
 
   function derivedTitle(body: string): string {
     const heading = body.match(/^#\s+(.+)$/m);
+    if (heading) {
+      const cleaned = cleanDerivedTitle(heading[1]);
+      if (cleaned) return cleaned;
+    }
 
-    return heading ? heading[1].trim() : "untitled";
+    return "untitled";
   }
 
   let titlePlaceholder = $derived.by(() => {
@@ -678,7 +756,14 @@
         void doSave();
       }
 
-      if (e.key === "Escape") tableMenu = null;
+      if (e.key === "Escape") {
+        tableMenu = null;
+        if (menuMove) {
+          menuMove = false;
+        } else {
+          openMenu = false;
+        }
+      }
     }
 
     window.addEventListener("keydown", onKey);
@@ -733,14 +818,16 @@
         }}
       />
       <span class="spacer"></span>
-      <button
-        class="btn-pin"
-        class:active={meta?.pinned}
-        onclick={togglePin}
-        title="pin note"
-      >
-        {meta?.pinned ? "pinned" : "pin"}
-      </button>
+      {#if !isMobile}
+        <button
+          class="btn-pin"
+          class:active={meta?.pinned}
+          onclick={togglePin}
+          title="pin note"
+        >
+          {meta?.pinned ? "pinned" : "pin"}
+        </button>
+      {/if}
       <div
         class="backlinks-wrap"
         use:clickOutside={() => (backlinksOpen = false)}
@@ -781,44 +868,111 @@
           </div>
         {/if}
       </div>
-      <div class="folder-wrap" use:clickOutside={() => (folderOpen = false)}>
+      {#if !isMobile && meta?.folder}
         <button
           class="btn-folder"
-          class:active={folderOpen}
-          onclick={toggleFolder}
           title="folder"
+          onclick={() => {
+            folderInput = meta?.folder ?? "";
+            menuMove = true;
+            openMenu = true;
+          }}
         >
-          {meta?.folder || "folder"}
+          {meta.folder}
         </button>
-        {#if folderOpen}
+      {/if}
+      <div
+        class="note-menu-wrap"
+        use:clickOutside={() => {
+          openMenu = false;
+          menuMove = false;
+        }}
+      >
+        <button
+          class="btn-menu"
+          class:active={openMenu}
+          title="more"
+          onclick={() => {
+            menuMove = false;
+            openMenu = !openMenu;
+          }}
+        >
+          <Icon name="ellipsis-vertical" size={16} />
+        </button>
+        {#if openMenu}
           <div
-            class="dd folder-dd"
-            role="dialog"
-            aria-label="folder"
-            tabindex="-1"
+            class="note-menu"
+            role="presentation"
             onclick={(e) => e.stopPropagation()}
-            onkeydown={(e) => e.stopPropagation()}
           >
-            <div class="backlinks-dd-head">folder</div>
-            <div class="folder-row">
-              <input
-                class="folder-input"
-                bind:value={folderInput}
-                placeholder="folder"
-                list="folder-options"
-                use:autofocus
-                onkeydown={(e) => {
-                  if (e.key === "Enter") void saveFolder();
-                  if (e.key === "Escape") folderOpen = false;
-                }}
-              />
+            {#if menuMove}
               <button
-                class="btn-folder-save"
-                onmousedown={(e) => e.preventDefault()}
-                onclick={() => void saveFolder()}
-              >save</button
+                class="menu-item"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  menuMove = false;
+                }}>← back</button
               >
-            </div>
+              <div class="menu-sep"></div>
+              <button
+                class="menu-item"
+                onclick={() => void moveToFolder("")}
+                >all notes</button
+              >
+              {#each allFolders as name (name)}
+                <button
+                  class="menu-item"
+                  onclick={() => void moveToFolder(name)}
+                  >{name}</button
+                >
+              {/each}
+              <div class="menu-sep"></div>
+              <div class="folder-row">
+                <input
+                  class="folder-input"
+                  bind:value={folderInput}
+                  placeholder="new folder"
+                  list="folder-options"
+                  use:autofocus
+                  onkeydown={(e) => {
+                    if (e.key === "Enter") void saveFolder();
+                    if (e.key === "Escape") {
+                      openMenu = false;
+                      menuMove = false;
+                    }
+                  }}
+                />
+                <button
+                  class="btn-folder-save"
+                  onmousedown={(e) => e.preventDefault()}
+                  onclick={() => void saveFolder()}
+                >save</button>
+              </div>
+            {:else}
+              <button
+                class="menu-item"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  folderInput = meta?.folder ?? "";
+                  menuMove = true;
+                }}>move to</button
+              >
+              <button
+                class="menu-item"
+                onclick={() => void trashCurrentNote()}
+                >trash</button
+              >
+              <button
+                class="menu-item"
+                onclick={togglePin}
+                >{meta?.pinned ? "unpin" : "pin"}</button
+              >
+              <button
+                class="menu-item"
+                onclick={() => void exportCurrentNote()}
+                >export</button
+              >
+            {/if}
           </div>
         {/if}
         <datalist id="folder-options">
@@ -1057,26 +1211,79 @@
 
   .btn-pin,
   .btn-backlinks,
-  .btn-folder {
+  .btn-folder,
+  .btn-menu {
     height: var(--ctl-h);
     padding: 0 var(--ctl-px);
     font-size: var(--fs-sm);
     color: var(--fg-3);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-menu {
+    width: var(--ctl-h);
+    padding: 0;
   }
 
   .btn-pin:hover,
   .btn-backlinks:hover,
-  .btn-folder:hover {
+  .btn-folder:hover,
+  .btn-menu:hover {
     background: var(--bg-3);
+    color: var(--fg);
   }
 
   .btn-pin.active,
   .btn-backlinks.active,
-  .btn-folder.active {
+  .btn-folder.active,
+  .btn-menu.active {
     color: var(--fg);
     border-color: var(--border-strong);
+  }
+
+  .note-menu-wrap {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .note-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: var(--s1);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--pad-xs);
+    min-width: var(--menu-w);
+    z-index: 50;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+  }
+
+  .menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--pad-sm);
+    font-size: var(--fs-sm);
+    color: var(--fg-2);
+    border-radius: var(--r-sm);
+  }
+
+  .menu-item:hover {
+    background: var(--bg-3);
+    color: var(--fg);
+  }
+
+  .menu-sep {
+    height: 1px;
+    background: var(--border);
+    margin: var(--pad-xs) 0;
   }
 
   .metabar {
@@ -1104,17 +1311,6 @@
   .folder-input:focus {
     outline: var(--focus-ring);
     outline-offset: -1px;
-  }
-
-  .folder-wrap {
-    position: relative;
-    display: inline-flex;
-    flex-shrink: 0;
-  }
-
-  .folder-dd {
-    left: auto;
-    right: 0;
   }
 
   .folder-row {
