@@ -49,6 +49,50 @@ pub fn remove_envelope(data_dir: &str, vault_id: &str, id: &str) -> io::Result<(
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ShareEnvelope {
+    pub v: u32,
+    pub nonce: String,
+    pub blob: String,
+}
+
+fn share_path(data_dir: &str, id: &str) -> PathBuf {
+    PathBuf::from(data_dir)
+        .join("shares")
+        .join(format!("{id}.json"))
+}
+
+pub fn write_share_envelope(
+    data_dir: &str,
+    envelope: &ShareEnvelope,
+    id: &str,
+) -> io::Result<()> {
+    let path = share_path(data_dir, id);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(
+        &tmp,
+        serde_json::to_vec(envelope).map_err(io::Error::other)?,
+    )?;
+    std::fs::rename(&tmp, &path)
+}
+
+pub fn read_share_envelope(data_dir: &str, id: &str) -> Option<ShareEnvelope> {
+    let path = share_path(data_dir, id);
+    let data = std::fs::read_to_string(&path).ok()?;
+    serde_json::from_str(&data).ok()
+}
+
+pub fn remove_share_envelope(data_dir: &str, id: &str) -> io::Result<()> {
+    let path = share_path(data_dir, id);
+    match std::fs::remove_file(&path) {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(()),
+        other => other,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

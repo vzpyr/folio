@@ -7,7 +7,7 @@ use axum::{
     http::{HeaderValue, Method, Request, StatusCode, header},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use serde::{Deserialize, de::DeserializeOwned};
@@ -112,7 +112,11 @@ async fn auth_middleware(
     next: Next,
 ) -> Response {
     let path = request.uri().path();
-    let is_public = path == "/api/health" || !path.starts_with("/api/");
+    let is_public = path == "/api/health"
+        || (path.starts_with("/api/shares/")
+            && !path.starts_with("/api/shares/by-note/")
+            && (request.method() == Method::GET || path.ends_with("/unlock")))
+        || !path.starts_with("/api/");
     if !is_public {
         let authorized = request
             .headers()
@@ -299,6 +303,205 @@ async fn sse_events(
         .unwrap())
 }
 
+#[derive(Deserialize)]
+struct CreateShareBody {
+    id: String,
+    note_id: String,
+    nonce: String,
+    blob: String,
+    has_password: bool,
+    salt: Option<String>,
+    wrapped_key: Option<String>,
+    verifier: Option<String>,
+    expires_at: Option<i64>,
+    max_views: Option<i64>,
+}
+
+#[derive(Deserialize)]
+struct UnlockShareBody {
+    verifier: Option<String>,
+}
+
+async fn create_share(
+    State(state): State<Arc<AppState>>,
+    body: String,
+) -> Result<impl IntoResponse, ApiError> {
+    let body: CreateShareBody = parse_json(&body, "POST share")?;
+    validate_token_id(&body.id).map_err(err400)?;
+    validate_token_id(&body.note_id).map_err(err400)?;
+
+    let envelope = files::ShareEnvelope {
+        v: 1,
+        nonce: body.nonce,
+        blob: body.blob,
+    };
+    files::write_share_envelope(&state.config.data_dir, &envelope, &body.id).map_err(err500)?;
+
+    let record = db::ShareRecord {
+        id: body.id.clone(),
+        note_id: body.note_id,
+        has_password: body.has_password,
+        salt: body.salt,
+        wrapped_key: body.wrapped_key,
+        verifier: body.verifier,
+        expires_at: body.expires_at,
+        max_views: body.max_views,
+        view_count: 0,
+        created_at: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as i64,
+    };
+    db::insert_share(&state.db, &record).map_err(err500)?;
+
+    Ok(axum::Json(serde_json::json!({ "id": body.id })))
+}
+
+async fn get_share_meta_or_data(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    validate_token_id(&id).map_err(err400)?;
+    let share = db::get_share(&state.db, &id).map_err(err500)?.ok_or_else(err404)?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
+
+    if let Some(exp) = share.expires_at {
+        if now > exp {
+            return Err((StatusCode::GONE, json_error("share expired")));
+        }
+    }
+
+    if let Some(max) = share.max_views {
+        if max > 0 && share.view_count >= max {
+            return Err((StatusCode::GONE, json_error("view limit reached")));
+        }
+    }
+
+    if share.has_password {
+        return Ok(axum::Json(serde_json::json!({
+            "id": share.id,
+            "has_password": true,
+            "salt": share.salt,
+            "expires_at": share.expires_at,
+            "max_views": share.max_views,
+            "view_count": share.view_count,
+        })));
+    }
+
+    let _ = db::increment_share_view(&state.db, &id).map_err(err500)?;
+    let env = files::read_share_envelope(&state.config.data_dir, &id).ok_or_else(err404)?;
+
+    Ok(axum::Json(serde_json::json!({
+        "id": share.id,
+        "has_password": false,
+        "nonce": env.nonce,
+        "blob": env.blob,
+        "expires_at": share.expires_at,
+        "max_views": share.max_views,
+        "view_count": share.view_count + 1,
+    })))
+}
+
+async fn unlock_share(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    body: String,
+) -> Result<impl IntoResponse, ApiError> {
+    validate_token_id(&id).map_err(err400)?;
+    let share = db::get_share(&state.db, &id).map_err(err500)?.ok_or_else(err404)?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
+
+    if let Some(exp) = share.expires_at {
+        if now > exp {
+            return Err((StatusCode::GONE, json_error("share expired")));
+        }
+    }
+
+    if let Some(max) = share.max_views {
+        if max > 0 && share.view_count >= max {
+            return Err((StatusCode::GONE, json_error("view limit reached")));
+        }
+    }
+
+    if share.has_password {
+        let req: UnlockShareBody = parse_json(&body, "POST unlock share")?;
+        let provided_verifier = req.verifier.unwrap_or_default();
+        let expected_verifier = share.verifier.unwrap_or_default();
+
+        if expected_verifier.is_empty()
+            || !bool::from(provided_verifier.as_bytes().ct_eq(expected_verifier.as_bytes()))
+        {
+            return Err((StatusCode::UNAUTHORIZED, json_error("invalid password")));
+        }
+    }
+
+    let _ = db::increment_share_view(&state.db, &id).map_err(err500)?;
+    let env = files::read_share_envelope(&state.config.data_dir, &id).ok_or_else(err404)?;
+
+    Ok(axum::Json(serde_json::json!({
+        "id": share.id,
+        "has_password": share.has_password,
+        "salt": share.salt,
+        "wrapped_key": share.wrapped_key,
+        "nonce": env.nonce,
+        "blob": env.blob,
+        "expires_at": share.expires_at,
+        "max_views": share.max_views,
+        "view_count": share.view_count + 1,
+    })))
+}
+
+async fn get_share_by_note(
+    State(state): State<Arc<AppState>>,
+    Path(note_id): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    validate_token_id(&note_id).map_err(err400)?;
+    let share = db::get_share_by_note(&state.db, &note_id).map_err(err500)?;
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as i64;
+
+    if let Some(s) = share {
+        let expired = s.expires_at.is_some_and(|exp| now > exp);
+        let exhausted = s.max_views.is_some_and(|max| max > 0 && s.view_count >= max);
+        if !expired && !exhausted {
+            return Ok(axum::Json(serde_json::json!({
+                "share": {
+                    "id": s.id,
+                    "note_id": s.note_id,
+                    "has_password": s.has_password,
+                    "expires_at": s.expires_at,
+                    "max_views": s.max_views,
+                    "view_count": s.view_count,
+                    "created_at": s.created_at,
+                }
+            })));
+        }
+    }
+
+    Ok(axum::Json(serde_json::json!({ "share": null })))
+}
+
+async fn delete_share(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, ApiError> {
+    validate_token_id(&id).map_err(err400)?;
+    db::delete_share(&state.db, &id).map_err(err500)?;
+    let _ = files::remove_share_envelope(&state.config.data_dir, &id);
+    Ok(axum::Json(serde_json::json!({ "ok": true })))
+}
+
 pub fn router(state: Arc<AppState>) -> Router {
     let api = Router::new()
         .route("/api/health", get(health))
@@ -308,7 +511,14 @@ pub fn router(state: Arc<AppState>) -> Router {
             get(get_item).put(put_item),
         )
         .route("/api/vaults/{vault_id}/batch", post(get_batch))
-        .route("/api/vaults/{vault_id}/events", get(sse_events));
+        .route("/api/vaults/{vault_id}/events", get(sse_events))
+        .route("/api/shares", post(create_share))
+        .route("/api/shares/by-note/{note_id}", get(get_share_by_note))
+        .route(
+            "/api/shares/{id}",
+            get(get_share_meta_or_data).delete(delete_share),
+        )
+        .route("/api/shares/{id}/unlock", post(unlock_share));
 
     let static_fallback = Router::new().fallback(embed::serve_static);
 
@@ -324,7 +534,7 @@ pub fn router(state: Arc<AppState>) -> Router {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
-                .allow_methods([Method::GET, Method::PUT, Method::POST, Method::OPTIONS]),
+                .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE, Method::OPTIONS]),
         )
         .layer(middleware::from_fn(security_headers))
         .with_state(state)

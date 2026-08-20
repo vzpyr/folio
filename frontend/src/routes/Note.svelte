@@ -26,6 +26,7 @@
   import { folderSignal } from "../lib/util/signals.svelte.ts";
   import WikiPicker from "../lib/components/WikiPicker.svelte";
   import FindReplaceBar from "../lib/components/FindReplaceBar.svelte";
+  import ShareModal from "../lib/components/ShareModal.svelte";
   import type { Editor } from "@tiptap/core";
   import type { Frontmatter } from "../lib/editor/markdown.ts";
 
@@ -46,6 +47,7 @@
   let backlinksOpen = $state(false);
   let openMenu = $state(false);
   let menuMove = $state(false);
+  let shareModalOpen = $state(false);
   let folderInput = $state("");
   let folderNames = $state<string[]>([]);
   let tagInput = $state("");
@@ -969,6 +971,15 @@
               >
               <button
                 class="menu-item"
+                onclick={() => {
+                  openMenu = false;
+                  menuMove = false;
+                  shareModalOpen = true;
+                }}
+                >share</button
+              >
+              <button
+                class="menu-item"
                 onclick={() => void exportCurrentNote()}
                 >export</button
               >
@@ -1155,6 +1166,10 @@
 
   {#if toast}
     <div class="toast">{toast}</div>
+  {/if}
+
+  {#if shareModalOpen}
+    <ShareModal noteId={id} onclose={() => (shareModalOpen = false)} />
   {/if}
 </div>
 

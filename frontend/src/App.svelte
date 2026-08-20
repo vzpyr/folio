@@ -15,10 +15,18 @@
   import List from "./routes/List.svelte";
   import Note from "./routes/Note.svelte";
   import Settings from "./routes/Settings.svelte";
+  import SharedNote from "./routes/SharedNote.svelte";
 
   let route = $derived(appState.route);
   let unlocked = $derived(appState.vaultUnlocked);
   let isMobile = $derived(mobile());
+  let isShare = $derived(route.startsWith("share/"));
+  let shareId = $derived.by(() => {
+    if (!isShare) return null;
+    const path = route.slice(6);
+    const end = path.search(/[#?]/);
+    return end === -1 ? path : path.slice(0, end);
+  });
   let noteId = $derived.by(() => {
     if (route.startsWith("note/")) return decodeURIComponent(route.slice(5));
 
@@ -50,7 +58,9 @@
   });
 </script>
 
-{#if !unlocked}
+{#if isShare && shareId}
+  <SharedNote {shareId} />
+{:else if !unlocked}
   <VaultGate />
 {:else}
   {#snippet mainContent()}

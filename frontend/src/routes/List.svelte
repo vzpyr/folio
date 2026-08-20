@@ -12,6 +12,7 @@
   import FolderCombo from "../lib/components/FolderCombo.svelte";
   import SortCombo, { type SortBy } from "../lib/components/SortCombo.svelte";
   import Icon from "../lib/components/Icon.svelte";
+  import ShareModal from "../lib/components/ShareModal.svelte";
   import type { SearchHit, Snippet } from "../lib/store/search.ts";
   import {
     bulkTrash,
@@ -33,6 +34,7 @@
   let unassignedOnly = $derived(appState.unassignedOnly);
   let openMenu = $state<string | null>(null);
   let menuMoveId = $state<string | null>(null);
+  let shareModalNoteId = $state<string | null>(null);
   let moveOpen = $state(false);
   let folderNames = $state<string[]>([]);
   let selected = $state(new Set<string>());
@@ -568,6 +570,14 @@
                       {#if menuMoveId !== note.id}
                         <button
                           class="menu-item"
+                          onclick={(e) => {
+                            e.stopPropagation();
+                            openMenu = null;
+                            shareModalNoteId = note.id;
+                          }}>share</button
+                        >
+                        <button
+                          class="menu-item"
                           onclick={(e) => exportNote(e, note.id)}>export</button
                         >
                       {/if}
@@ -645,6 +655,10 @@
         <button class="bulk-btn" onclick={clearSelection}>clear</button>
       </div>
     </div>
+  {/if}
+
+  {#if shareModalNoteId}
+    <ShareModal noteId={shareModalNoteId} onclose={() => (shareModalNoteId = null)} />
   {/if}
 </main>
 

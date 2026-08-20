@@ -29,7 +29,20 @@ pub fn open(data_dir: &str) -> Result<Database, Box<dyn std::error::Error>> {
             id TEXT NOT NULL,
             rev INTEGER NOT NULL,
             PRIMARY KEY (vault_id, id)
-        );",
+        );
+        CREATE TABLE IF NOT EXISTS shares (
+            id TEXT PRIMARY KEY,
+            note_id TEXT NOT NULL,
+            has_password INTEGER NOT NULL,
+            salt TEXT,
+            wrapped_key TEXT,
+            verifier TEXT,
+            expires_at INTEGER,
+            max_views INTEGER,
+            view_count INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_shares_note_id ON shares(note_id);",
     )?;
     Ok(Database::new(conn))
 }
@@ -84,6 +97,107 @@ pub fn advance_item(
         params![vault_id, id, new_rev, base_rev],
     )?;
     Ok((rows == 1).then_some(new_rev))
+}
+
+#[derive(Debug, Clone)]
+pub struct ShareRecord {
+    pub id: String,
+    pub note_id: String,
+    pub has_password: bool,
+    pub salt: Option<String>,
+    pub wrapped_key: Option<String>,
+    pub verifier: Option<String>,
+    pub expires_at: Option<i64>,
+    pub max_views: Option<i64>,
+    pub view_count: i64,
+    pub created_at: i64,
+}
+
+pub fn insert_share(db: &Database, share: &ShareRecord) -> Result<(), rusqlite::Error> {
+    let conn = db.lock();
+    conn.execute(
+        "INSERT OR REPLACE INTO shares (id, note_id, has_password, salt, wrapped_key, verifier, expires_at, max_views, view_count, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![
+            share.id,
+            share.note_id,
+            share.has_password as i32,
+            share.salt,
+            share.wrapped_key,
+            share.verifier,
+            share.expires_at,
+            share.max_views,
+            share.view_count,
+            share.created_at,
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn get_share(db: &Database, id: &str) -> Result<Option<ShareRecord>, rusqlite::Error> {
+    let conn = db.lock();
+    let mut stmt = conn.prepare(
+        "SELECT id, note_id, has_password, salt, wrapped_key, verifier, expires_at, max_views, view_count, created_at
+         FROM shares WHERE id = ?1",
+    )?;
+    let mut rows = stmt.query(params![id])?;
+    if let Some(row) = rows.next()? {
+        Ok(Some(ShareRecord {
+            id: row.get(0)?,
+            note_id: row.get(1)?,
+            has_password: row.get::<_, i32>(2)? != 0,
+            salt: row.get(3)?,
+            wrapped_key: row.get(4)?,
+            verifier: row.get(5)?,
+            expires_at: row.get(6)?,
+            max_views: row.get(7)?,
+            view_count: row.get(8)?,
+            created_at: row.get(9)?,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn get_share_by_note(db: &Database, note_id: &str) -> Result<Option<ShareRecord>, rusqlite::Error> {
+    let conn = db.lock();
+    let mut stmt = conn.prepare(
+        "SELECT id, note_id, has_password, salt, wrapped_key, verifier, expires_at, max_views, view_count, created_at
+         FROM shares WHERE note_id = ?1 ORDER BY created_at DESC LIMIT 1",
+    )?;
+    let mut rows = stmt.query(params![note_id])?;
+    if let Some(row) = rows.next()? {
+        Ok(Some(ShareRecord {
+            id: row.get(0)?,
+            note_id: row.get(1)?,
+            has_password: row.get::<_, i32>(2)? != 0,
+            salt: row.get(3)?,
+            wrapped_key: row.get(4)?,
+            verifier: row.get(5)?,
+            expires_at: row.get(6)?,
+            max_views: row.get(7)?,
+            view_count: row.get(8)?,
+            created_at: row.get(9)?,
+        }))
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn increment_share_view(db: &Database, id: &str) -> Result<i64, rusqlite::Error> {
+    let conn = db.lock();
+    conn.execute(
+        "UPDATE shares SET view_count = view_count + 1 WHERE id = ?1",
+        params![id],
+    )?;
+    let mut stmt = conn.prepare("SELECT view_count FROM shares WHERE id = ?1")?;
+    stmt.query_row(params![id], |row| row.get(0))
+}
+
+pub fn delete_share(db: &Database, id: &str) -> Result<bool, rusqlite::Error> {
+    let conn = db.lock();
+    let rows = conn.execute("DELETE FROM shares WHERE id = ?1", params![id])?;
+    Ok(rows > 0)
 }
 
 #[cfg(test)]
