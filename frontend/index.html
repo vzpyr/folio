@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="theme-color" content="#f6f6f6" id="meta-theme-color" />
     <title>folio</title>
     <style>
       html {
@@ -19,8 +20,13 @@
     <script>
       (function () {
         try {
-          var t = localStorage.getItem("folio:theme");
-          if (t) document.documentElement.dataset.theme = t;
+          var t = localStorage.getItem("folio:theme") || "light";
+          document.documentElement.dataset.theme = t;
+          var m = document.getElementById("meta-theme-color");
+          if (m) m.setAttribute("content", t === "dark" ? "#171717" : "#f6f6f6");
+          if (window.FolioSplash && window.FolioSplash.setTheme) {
+            window.FolioSplash.setTheme(t);
+          }
         } catch (e) {}
       })();
     </script>

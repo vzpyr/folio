@@ -7,6 +7,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import io.crates.keyring.Keyring
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -21,6 +22,13 @@ class MainActivity : TauriActivity() {
     splash.setKeepOnScreenCondition { !contentReady.get() }
   }
 
+  fun updateStatusBarTheme(isLight: Boolean) {
+    Handler(Looper.getMainLooper()).post {
+      val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+      insetsController.isAppearanceLightStatusBars = isLight
+    }
+  }
+
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
     webView.addJavascriptInterface(
@@ -28,6 +36,11 @@ class MainActivity : TauriActivity() {
         @JavascriptInterface
         fun ready() {
           contentReady.set(true)
+        }
+
+        @JavascriptInterface
+        fun setTheme(theme: String) {
+          updateStatusBarTheme(theme == "light")
         }
       },
       "FolioSplash",

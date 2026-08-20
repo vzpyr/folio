@@ -552,22 +552,16 @@
                       {:else}
                         <button
                           class="menu-item"
+                          onclick={(e) => togglePin(e, note.id)}
+                          >{note.pinned ? "unpin" : "pin"}</button
+                        >
+                        <button
+                          class="menu-item"
                           onclick={(e) => {
                             e.stopPropagation();
                             menuMoveId = note.id;
                           }}>move to</button
                         >
-                        <button
-                          class="menu-item"
-                          onclick={(e) => trashNote(e, note.id)}>trash</button
-                        >
-                        <button
-                          class="menu-item"
-                          onclick={(e) => togglePin(e, note.id)}
-                          >{note.pinned ? "unpin" : "pin"}</button
-                        >
-                      {/if}
-                      {#if menuMoveId !== note.id}
                         <button
                           class="menu-item"
                           onclick={(e) => {
@@ -579,6 +573,10 @@
                         <button
                           class="menu-item"
                           onclick={(e) => exportNote(e, note.id)}>export</button
+                        >
+                        <button
+                          class="menu-item"
+                          onclick={(e) => trashNote(e, note.id)}>trash</button
                         >
                       {/if}
                     </div>
@@ -604,7 +602,12 @@
         {#if filterTrash}
           <button class="bulk-btn" onclick={restoreSelected}>restore</button>
           <button class="bulk-btn" onclick={deleteSelected}>delete</button>
+          <button class="bulk-btn" onclick={exportSelected}>export</button>
+          <button class="bulk-btn" onclick={clearSelection}>clear</button>
         {:else}
+          <button class="bulk-btn" onclick={togglePinSelected}
+            >{allPinned ? "unpin" : "pin"}</button
+          >
           <div class="bulk-move" use:clickOutside={() => (moveOpen = false)}>
             <button class="bulk-btn" onclick={() => (moveOpen = !moveOpen)}
               >move to</button
@@ -646,13 +649,10 @@
               </div>
             {/if}
           </div>
+          <button class="bulk-btn" onclick={exportSelected}>export</button>
           <button class="bulk-btn" onclick={trashSelected}>trash</button>
-          <button class="bulk-btn" onclick={togglePinSelected}
-            >{allPinned ? "unpin" : "pin"}</button
-          >
+          <button class="bulk-btn" onclick={clearSelection}>clear</button>
         {/if}
-        <button class="bulk-btn" onclick={exportSelected}>export</button>
-        <button class="bulk-btn" onclick={clearSelection}>clear</button>
       </div>
     </div>
   {/if}

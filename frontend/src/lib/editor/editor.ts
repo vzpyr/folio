@@ -16,9 +16,9 @@ import Placeholder from "@tiptap/extension-placeholder";
 import FloatingMenu from "@tiptap/extension-floating-menu";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownMarkSpec, MarkdownNodeSpec } from "tiptap-markdown";
-import { TextSelection, Plugin, PluginKey } from "@tiptap/pm/state";
+import { TextSelection, Plugin, PluginKey, EditorState } from "@tiptap/pm/state";
 import { DOMParser } from "@tiptap/pm/model";
-import type { EditorState, Transaction } from "@tiptap/pm/state";
+import type { Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { mount } from "svelte";
 import { handlePaste, handleDrop, uploadFile } from "./attachments.ts";
@@ -680,7 +680,7 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
               .trim() !== ""
           );
         },
-        options: { placement: "top", offset: 8 },
+        options: { placement: "bottom", offset: 12 },
       }),
       SlashCommand.configure({
         onAttachment: () =>
@@ -751,8 +751,15 @@ export function setBody(
   body: string,
   resolveAttachment?: (ref: string) => Promise<string | null>,
 ): void {
-  editor.commands.setContent(body);
+  editor.commands.setContent(body, { emitUpdate: false });
   applyWikiLinks(editor);
+  const newState = EditorState.create({
+    schema: editor.state.schema,
+    doc: editor.state.doc,
+    plugins: editor.state.plugins,
+    selection: editor.state.selection,
+  });
+  editor.view.updateState(newState);
   void resolveImages(editor, resolveAttachment);
 }
 

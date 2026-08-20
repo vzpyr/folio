@@ -298,50 +298,12 @@
   </section>
 
   <section>
-    <h2>vault</h2>
-    <div class="setting-row">
-      <span class="setting-label">vault id</span>
-      <span class="setting-value mono">{vaultId.slice(0, 12)}…</span>
-    </div>
-  </section>
-
-  {#if isDesktop()}
-    <section>
-      <h2>vault folder</h2>
-      <div class="setting-row">
-        <span class="setting-label">folder</span>
-        <span class="setting-value mono vault-path">{vaultDir || "—"}</span>
-      </div>
-      <p class="signout-note">
-        notes are plain .md files here; external edits are picked up on focus or
-        sync.
-      </p>
-      <button class="btn-save" onclick={changeFolder}>change folder</button>
-      {#if folderError}
-        <p class="error-note">{folderError}</p>
-      {/if}
-    </section>
-  {/if}
-
-  <section>
     <h2>sync</h2>
     <p class="signout-note">
       optional — link a self-hosted server to sync across devices. without it,
       folio is fully local on this device.
     </p>
     {#if syncConnected || syncStatus === "offline" || syncConfigured}
-      {#if syncConnected || syncStatus === "offline"}
-        <div class="setting-row">
-          <span class="setting-label">status</span>
-          <span class="sync-pill {syncStatus}"
-            >{syncStatus === "synced" ? "synced" : syncStatus}</span
-          >
-          {#if lastSync}<span class="setting-value mono"
-              >{formatRelative(lastSync)}</span
-            >{/if}
-        </div>
-        {#if lastError}<p class="error-note">{lastError}</p>{/if}
-      {/if}
       {#if !syncConnected}
         <div class="setting-row">
           <span class="setting-label">server</span><span
@@ -443,16 +405,27 @@
   <section>
     <h2>data</h2>
     <div class="setting-row">
-      <span class="setting-label">vault data</span>
+      <span class="setting-label">vault id</span>
+      <span class="setting-value mono">{vaultId.slice(0, 12)}…</span>
     </div>
-    <button class="btn-toggle" onclick={() => (manageDataOpen = true)}
-      >manage data</button
-    >
-  </section>
-
-  <section>
-    <h2>account</h2>
+    {#if isDesktop()}
+      <div class="setting-row">
+        <span class="setting-label">folder</span>
+        <span class="setting-value mono vault-path">{vaultDir || "—"}</span>
+      </div>
+      <p class="signout-note">
+        notes are plain .md files here; external edits are picked up on focus or
+        sync.
+      </p>
+      <button class="btn-save" onclick={changeFolder}>change folder</button>
+      {#if folderError}
+        <p class="error-note">{folderError}</p>
+      {/if}
+    {/if}
     <div class="row-actions">
+      <button class="btn-toggle" onclick={() => (manageDataOpen = true)}>
+        manage data
+      </button>
       <button class="btn-signout" onclick={signOut}>
         {confirmSignOut ? "confirm sign out" : "sign out"}
       </button>
@@ -579,44 +552,33 @@
   }
 
   .btn-toggle,
-  .btn-save {
+  .btn-save,
+  .btn-signout {
     height: var(--ctl-h);
     padding: 0 var(--ctl-px);
     border: 1px solid var(--border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-md);
     font-size: var(--fs-sm);
     color: var(--fg-2);
   }
 
   .row-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--gap);
     margin-top: var(--s2);
   }
 
   .btn-toggle:hover,
-  .btn-save:hover {
+  .btn-save:hover,
+  .btn-signout:hover {
     background: var(--bg-3);
+    color: var(--fg);
+    border-color: var(--border-strong);
   }
 
   .btn-save {
     margin-top: var(--s3);
-    color: var(--fg);
-    border-color: var(--border-strong);
-  }
-
-  .btn-signout {
-    height: var(--ctl-h);
-    padding: 0 var(--ctl-px);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    font-size: var(--fs-sm);
-    color: var(--fg-3);
-  }
-
-  .btn-signout:hover {
-    color: var(--fg);
-    border-color: var(--border-strong);
   }
 
   .signout-note {

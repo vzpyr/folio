@@ -53,8 +53,10 @@
   });
 
   onMount(() => {
-    const drop = () => window.FolioSplash?.ready?.();
-    requestAnimationFrame(() => requestAnimationFrame(drop));
+    if (isShare) {
+      const drop = () => window.FolioSplash?.ready?.();
+      requestAnimationFrame(() => requestAnimationFrame(drop));
+    }
   });
 </script>
 

@@ -67,11 +67,11 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--bg);
-    color: var(--fg-3);
+    color: var(--fg-2);
   }
 
   .btn-ai:hover {
     border-color: var(--border-strong);
-    color: var(--fg-2);
+    color: var(--fg);
   }
 </style>

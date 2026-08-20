@@ -105,4 +105,9 @@ export async function clearAllSettings(): Promise<void> {
 export function applyTheme(theme: string): void {
   document.documentElement.dataset.theme = theme;
   localStorage.setItem(KEYS.theme, theme);
+  window.FolioSplash?.setTheme?.(theme);
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute("content", theme === "dark" ? "#171717" : "#f6f6f6");
+  }
 }

@@ -55,6 +55,8 @@
     (index?.tagList ?? []).filter((t) => !(meta?.tags ?? []).includes(t.tag)),
   );
   let toast = $state("");
+  let canUndo = $state(false);
+  let canRedo = $state(false);
   let wikiSeed = $state<{ q: string; n: number } | null>(null);
   let findSeed = $state<{ n: number } | null>(null);
   let tableEl = $state<HTMLElement | null>(null);
@@ -687,9 +689,12 @@
         },
       });
       setBody(view, body, resolveImageRef);
-      savedSnapshot.body = getMarkdown(view);
       view.on("selectionUpdate", updateTable);
       view.on("update", updateTable);
+      view.on("selectionUpdate", updateUndoState);
+      view.on("update", updateUndoState);
+      view.on("transaction", updateUndoState);
+      updateUndoState();
       view.view.dom.addEventListener("contextmenu", onTableContext);
       view.view.dom.addEventListener("blur", () => {
         if (saveTimer) clearTimeout(saveTimer);
@@ -702,6 +707,11 @@
     }
 
     loading = false;
+  }
+
+  function updateUndoState() {
+    canUndo = view?.can()?.undo() ?? false;
+    canRedo = view?.can()?.redo() ?? false;
   }
 
   let titleDraft = $state("");
@@ -960,21 +970,16 @@
             {:else}
               <button
                 class="menu-item"
+                onclick={togglePin}
+                >{meta?.pinned ? "unpin" : "pin"}</button
+              >
+              <button
+                class="menu-item"
                 onclick={(e) => {
                   e.stopPropagation();
                   folderInput = meta?.folder ?? "";
                   menuMove = true;
                 }}>move to</button
-              >
-              <button
-                class="menu-item"
-                onclick={() => void trashCurrentNote()}
-                >trash</button
-              >
-              <button
-                class="menu-item"
-                onclick={togglePin}
-                >{meta?.pinned ? "unpin" : "pin"}</button
               >
               <button
                 class="menu-item"
@@ -989,6 +994,11 @@
                 class="menu-item"
                 onclick={() => void exportCurrentNote()}
                 >export</button
+              >
+              <button
+                class="menu-item"
+                onclick={() => void trashCurrentNote()}
+                >trash</button
               >
             {/if}
           </div>
@@ -1034,6 +1044,7 @@
               e.preventDefault();
               e.stopPropagation();
               addTag();
+              e.currentTarget.blur();
             }
             if (e.key === "Backspace" && !tagInput && meta?.tags.length) {
               removeTag(meta.tags.length - 1);
@@ -1076,10 +1087,20 @@
           {/if}
         </span>
         <div class="mobile-actions">
-          <button type="button" title="undo" onclick={() => view && undo(view)}>
+          <button
+            type="button"
+            title="undo"
+            disabled={!canUndo}
+            onclick={() => view && undo(view)}
+          >
             <Icon name="undo" size={16} />
           </button>
-          <button type="button" title="redo" onclick={() => view && redo(view)}>
+          <button
+            type="button"
+            title="redo"
+            disabled={!canRedo}
+            onclick={() => view && redo(view)}
+          >
             <Icon name="redo" size={16} />
           </button>
           <button
@@ -1210,6 +1231,7 @@
     align-items: center;
     gap: var(--gap);
     padding: var(--pad-bar);
+    background: var(--bg-2);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
@@ -1467,7 +1489,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--pad-xs);
+    padding: var(--pad-xs) var(--pad-bar);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     gap: var(--gap);
@@ -1497,6 +1519,12 @@
     color: var(--fg);
   }
 
+  .metabar button:disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+  }
+
   .content-scroll {
     flex: 1;
     min-height: 0;
@@ -1510,6 +1538,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: var(--pad-page);
   }
 

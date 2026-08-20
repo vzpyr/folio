@@ -1,5 +1,8 @@
 declare module "*.css";
 
 interface Window {
-  FolioSplash?: { ready?: () => void };
+  FolioSplash?: {
+    ready?: () => void;
+    setTheme?: (theme: string) => void;
+  };
 }

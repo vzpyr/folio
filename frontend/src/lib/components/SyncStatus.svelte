@@ -159,12 +159,12 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     background: var(--bg);
-    color: var(--fg-3);
+    color: var(--fg-2);
   }
 
   .sync-btn:hover {
     border-color: var(--border-strong);
-    color: var(--fg-2);
+    color: var(--fg);
   }
 
   .sync-row {
@@ -197,7 +197,7 @@
   }
 
   .sync-status.synced .sync-btn {
-    color: var(--fg);
+    color: var(--fg-2);
   }
 
   .sync-status.syncing .sync-btn {
@@ -205,12 +205,12 @@
   }
 
   .sync-status.offline .sync-btn {
-    color: var(--fg);
+    color: var(--fg-2);
     border-color: var(--border-strong);
   }
 
   .sync-status.local .sync-btn {
-    color: var(--fg-3);
+    color: var(--fg-2);
   }
 
   .sync-status.synced .sync-pop-head {

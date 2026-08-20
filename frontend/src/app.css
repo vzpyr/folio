@@ -210,20 +210,15 @@ body {
   font-size: var(--fs-base);
   line-height: 1.5;
   color: var(--fg);
-  background: var(--bg);
+  background: var(--bg-2);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
   height: 100%;
-  /* Android edge-to-edge (MainActivity.enableEdgeToEdge) lets the system
-     status/nav bars overlay the webview. viewport-fit=cover (index.html)
-     exposes env(safe-area-inset-*) to CSS; pad the content root so app UI
-     sits below the status bar while body's --bg still fills behind the bars
-     for a seamless edge-to-edge look. env() is 0 on desktop/regular web, so
-     this is a no-op there. */
   padding-top: env(safe-area-inset-top);
+  background: var(--bg);
 }
 
 /* selection */
@@ -558,7 +553,7 @@ a,
 .editor-wrap .folio-editor {
   max-width: var(--maxw-editor);
   margin: 0 auto;
-  height: 100%;
+  min-height: 100%;
   outline: none;
   line-height: 1.7;
   word-break: break-word;

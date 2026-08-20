@@ -38,7 +38,7 @@
     null,
   );
   let vaultDir = $state(settings.vaultDir || "");
-  let autoUnlocking = $state(false);
+  let autoUnlocking = $state(true);
 
   function errorText(e: unknown, fallback: string): string {
     const msg =
@@ -165,6 +165,7 @@
     appState.lastSync = null;
     appState.lastError = null;
     navigate("");
+    window.FolioSplash?.ready?.();
     void wireSync(store, index, keys);
   }
 
@@ -232,11 +233,18 @@
     if (saved && (!isDesktop() || vaultDir)) {
       try {
         await unlock();
-      } finally {
+      } catch {
         autoUnlocking = false;
+        window.FolioSplash?.ready?.();
+      } finally {
+        if (!appState.vaultUnlocked) {
+          autoUnlocking = false;
+          window.FolioSplash?.ready?.();
+        }
       }
     } else {
       autoUnlocking = false;
+      window.FolioSplash?.ready?.();
     }
   });
 </script>
