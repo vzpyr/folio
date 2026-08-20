@@ -546,6 +546,7 @@
     background: var(--bg-2);
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.12);
   }
 
   .pw-title {

@@ -136,7 +136,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgb(0 0 0 / 0.5);
+    background: rgb(0 0 0 / 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -151,6 +153,7 @@
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.24);
     padding: var(--pad-lg);
     gap: var(--gap-lg);
   }

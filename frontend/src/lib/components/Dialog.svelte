@@ -108,7 +108,9 @@
   .overlay {
     position: fixed;
     inset: 0;
-    background: rgb(0 0 0 / 0.4);
+    background: rgb(0 0 0 / 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -122,6 +124,7 @@
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
     padding: var(--pad-lg);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.24);
   }
 
   .modal-header {
@@ -185,24 +188,33 @@
   }
 
   .btn-cancel {
-    padding: var(--pad-md);
+    height: var(--ctl-h);
+    padding: 0 var(--ctl-px);
     border: 1px solid var(--border);
     border-radius: var(--r-sm);
     font-size: var(--fs-sm);
     color: var(--fg-3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .btn-cancel:hover {
     color: var(--fg);
     border-color: var(--border-strong);
+    background: var(--bg-3);
   }
 
   .btn-confirm {
-    padding: var(--pad-md);
+    height: var(--ctl-h);
+    padding: 0 var(--ctl-px);
     background: var(--fg);
     color: var(--bg);
     border-radius: var(--r-sm);
     font-size: var(--fs-sm);
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>

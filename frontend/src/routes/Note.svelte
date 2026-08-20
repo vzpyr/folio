@@ -822,12 +822,13 @@
       <span class="spacer"></span>
       {#if !isMobile}
         <button
-          class="btn-pin"
+          class="btn-icon"
           class:active={meta?.pinned}
           onclick={togglePin}
-          title="pin note"
+          title={meta?.pinned ? "unpin note" : "pin note"}
+          aria-label={meta?.pinned ? "unpin note" : "pin note"}
         >
-          {meta?.pinned ? "pinned" : "pin"}
+          <Icon name={meta?.pinned ? "star-check" : "star"} size={16} />
         </button>
       {/if}
       <div
@@ -835,11 +836,16 @@
         use:clickOutside={() => (backlinksOpen = false)}
       >
         <button
-          class="btn-backlinks"
+          class="btn-ghost"
           class:active={backlinksOpen}
           onclick={() => (backlinksOpen = !backlinksOpen)}
+          title="backlinks"
         >
-          backlinks {backlinks.length ? `(${backlinks.length})` : ""}
+          <Icon name="link-2" size={14} />
+          <span>backlinks</span>
+          {#if backlinks.length}
+            <span class="count-badge">{backlinks.length}</span>
+          {/if}
         </button>
         {#if isMobile && backlinksOpen}
           <div
@@ -872,7 +878,7 @@
       </div>
       {#if !isMobile && meta?.folder}
         <button
-          class="btn-folder"
+          class="btn-ghost"
           title="folder"
           onclick={() => {
             folderInput = meta?.folder ?? "";
@@ -880,7 +886,8 @@
             openMenu = true;
           }}
         >
-          {meta.folder}
+          <Icon name="folder" size={14} />
+          <span>{meta.folder}</span>
         </button>
       {/if}
       <div
@@ -891,7 +898,7 @@
         }}
       >
         <button
-          class="btn-menu"
+          class="btn-icon"
           class:active={openMenu}
           title="more"
           onclick={() => {
@@ -1234,40 +1241,46 @@
     flex: 1;
   }
 
-  .btn-pin,
-  .btn-backlinks,
-  .btn-folder,
-  .btn-menu {
+  .btn-ghost,
+  .btn-icon {
     height: var(--ctl-h);
     padding: 0 var(--ctl-px);
     font-size: var(--fs-sm);
     color: var(--fg-3);
-    border: 1px solid var(--border);
+    border: none;
+    background: transparent;
     border-radius: var(--r-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: var(--s1);
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
-  .btn-menu {
+  .btn-icon {
     width: var(--ctl-h);
     padding: 0;
   }
 
-  .btn-pin:hover,
-  .btn-backlinks:hover,
-  .btn-folder:hover,
-  .btn-menu:hover {
+  .btn-ghost:hover,
+  .btn-icon:hover {
     background: var(--bg-3);
     color: var(--fg);
   }
 
-  .btn-pin.active,
-  .btn-backlinks.active,
-  .btn-folder.active,
-  .btn-menu.active {
+  .btn-ghost.active,
+  .btn-icon.active {
     color: var(--fg);
-    border-color: var(--border-strong);
+    background: var(--bg-3);
+  }
+
+  .count-badge {
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    background: var(--bg-3);
+    padding: 1px var(--s1);
+    border-radius: var(--r-full);
   }
 
   .note-menu-wrap {

@@ -68,9 +68,10 @@
   --s6: 32px;
 
   /* radii */
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 8px;
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
   --r-full: 9999px;
 
   /* typography scale — every font-size in the app comes from here */
@@ -302,14 +303,14 @@ input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   flex-shrink: 0;
   position: relative;
   vertical-align: middle;
   background: var(--bg-3);
   border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-xs);
   cursor: pointer;
 }
 
@@ -325,7 +326,7 @@ input[type="checkbox"]:checked {
 input[type="checkbox"]:checked::after {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 4.5px;
   top: 2px;
   width: 4px;
   height: 8px;
@@ -342,6 +343,31 @@ input[type="checkbox"]:focus-visible {
 input[type="checkbox"]:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--fg);
+  background-color: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  height: var(--ctl-h);
+  padding: 0 var(--ctl-px);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.1s ease;
+}
+
+select:hover {
+  border-color: var(--border-strong);
+}
+
+select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -1px;
 }
 
 /* utility */

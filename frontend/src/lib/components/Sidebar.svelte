@@ -197,7 +197,10 @@
   </div>
 
   <div class="sidebar-footer">
-    <button class="btn-settings" onclick={toggleSettings}>settings</button>
+    <button class="btn-settings" onclick={toggleSettings}>
+      <Icon name="settings" size={16} />
+      <span>settings</span>
+    </button>
   </div>
 </aside>
 
@@ -220,9 +223,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: var(--fs-xl);
     color: var(--fg-2);
-    border: 1px solid var(--border);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .bar-actions {
@@ -233,6 +238,7 @@
 
   .btn-new:hover {
     background: var(--bg-3);
+    color: var(--fg);
   }
 
   .sidebar-section {
@@ -373,13 +379,22 @@
     font-size: var(--fs-sm);
     color: var(--fg-3);
     width: 100%;
-    padding: var(--pad-sm);
+    height: var(--ctl-h);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s2);
+    padding: 0 var(--ctl-px);
     border-radius: var(--r-sm);
     border: 1px solid var(--border);
     text-align: center;
+    cursor: pointer;
+    transition: background 0.1s ease, color 0.1s ease, border-color 0.1s ease;
   }
 
   .btn-settings:hover {
     background: var(--bg-3);
+    color: var(--fg);
+    border-color: var(--border-strong);
   }
 </style>
