@@ -13,7 +13,7 @@
     extractTitle,
     cleanDerivedTitle,
   } from "../lib/editor/markdown.ts";
-  import { formatTimestamp } from "../lib/util/format.ts";
+  import { formatTimestamp, formatRelative } from "../lib/util/format.ts";
   import Icon from "../lib/components/Icon.svelte";
   import { folderRegistry, setNoteFolder } from "../lib/store/folders.ts";
   import { mobile } from "../lib/util/mobile.svelte.ts";
@@ -995,52 +995,61 @@
     </div>
 
     <div class="tags-row">
-      {#each meta?.tags ?? [] as tag, i}
-        <span class="tag-chip">
-          #{tag}
-          <span
-            class="tag-remove"
-            role="button"
-            tabindex="0"
-            title="remove tag"
-            onkeydown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                removeTag(i);
-              }
-            }}
-            onclick={() => removeTag(i)}
-          >
-            <Icon name="x" size={10} />
+      <div class="tags-scroll">
+        {#each meta?.tags ?? [] as tag, i}
+          <span class="tag-chip">
+            #{tag}
+            <span
+              class="tag-remove"
+              role="button"
+              tabindex="0"
+              title="remove tag"
+              onkeydown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  removeTag(i);
+                }
+              }}
+              onclick={() => removeTag(i)}
+            >
+              <Icon name="x" size={10} />
+            </span>
           </span>
-        </span>
-      {/each}
-      <input
-        class="tag-input"
-        type="text"
-        bind:value={tagInput}
-        placeholder="+ tag"
-        list="tag-options"
-        onkeydown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            e.stopPropagation();
-            addTag();
-          }
-          if (e.key === "Backspace" && !tagInput && meta?.tags.length) {
-            removeTag(meta.tags.length - 1);
-          }
-          if (e.key === "Escape") e.currentTarget.blur();
-        }}
-        onblur={() => {
-          if (tagInput.trim()) addTag();
-        }}
-      />
-      <datalist id="tag-options">
-        {#each tagSuggestions as t}
-          <option value={t.tag}></option>
         {/each}
-      </datalist>
+        <input
+          class="tag-input"
+          type="text"
+          bind:value={tagInput}
+          placeholder="+ tag"
+          list="tag-options"
+          onkeydown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              addTag();
+            }
+            if (e.key === "Backspace" && !tagInput && meta?.tags.length) {
+              removeTag(meta.tags.length - 1);
+            }
+            if (e.key === "Escape") e.currentTarget.blur();
+          }}
+          onblur={() => {
+            if (tagInput.trim()) addTag();
+          }}
+        />
+        <datalist id="tag-options">
+          {#each tagSuggestions as t}
+            <option value={t.tag}></option>
+          {/each}
+        </datalist>
+      </div>
+
+      {#if !isMobile && meta}
+        <span class="meta-times">
+          <span>created {formatTimestamp(meta.created)}</span>
+          <span>updated {formatTimestamp(meta.updated)}</span>
+        </span>
+      {/if}
     </div>
 
     <WikiPicker
@@ -1052,30 +1061,31 @@
       }}
     />
 
-    <div class="metabar">
-      {#if isMobile}
-        <button type="button" title="undo" onclick={() => view && undo(view)}>
-          <Icon name="undo" size={16} />
-        </button>
-        <button type="button" title="redo" onclick={() => view && redo(view)}>
-          <Icon name="redo" size={16} />
-        </button>
-        <button
-          type="button"
-          title="find"
-          aria-label="find in note"
-          onclick={() => (findSeed = { n: (findSeed?.n ?? 0) + 1 })}
-        >
-          <Icon name="search" size={16} />
-        </button>
-      {/if}
-      <span class="meta-times">
-        {#if meta}
-          <span>created {formatTimestamp(meta.created)}</span>
-          <span>updated {formatTimestamp(meta.updated)}</span>
-        {/if}
-      </span>
-    </div>
+    {#if isMobile}
+      <div class="metabar">
+        <span class="meta-times">
+          {#if meta}
+            <span>created {formatRelative(meta.created)}</span>
+          {/if}
+        </span>
+        <div class="mobile-actions">
+          <button type="button" title="undo" onclick={() => view && undo(view)}>
+            <Icon name="undo" size={16} />
+          </button>
+          <button type="button" title="redo" onclick={() => view && redo(view)}>
+            <Icon name="redo" size={16} />
+          </button>
+          <button
+            type="button"
+            title="find"
+            aria-label="find in note"
+            onclick={() => (findSeed = { n: (findSeed?.n ?? 0) + 1 })}
+          >
+            <Icon name="search" size={16} />
+          </button>
+        </div>
+      </div>
+    {/if}
 
     <div
       role="presentation"
@@ -1355,31 +1365,29 @@
     color: var(--fg);
   }
 
-  .metabar button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: var(--icon-btn);
-    height: var(--icon-btn);
-    padding: 0 var(--s2);
-    border-radius: var(--r-sm);
-    color: var(--fg-2);
-    flex-shrink: 0;
-  }
-
-  .metabar button:active {
-    background: var(--bg-3);
-    color: var(--fg);
-  }
-
   .tags-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: var(--s1);
+    justify-content: space-between;
+    gap: var(--gap);
     padding: var(--pad-xs);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    min-width: 0;
+  }
+
+  .tags-scroll {
+    display: flex;
+    align-items: center;
+    gap: var(--s1);
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tags-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   .tags-row .tag-chip {
@@ -1392,6 +1400,7 @@
     border-radius: var(--r-sm);
     padding: var(--pad-xs);
     white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .tag-remove {
@@ -1429,10 +1438,50 @@
 
   .meta-times {
     display: flex;
+    align-items: center;
     gap: var(--gap-lg);
-    margin-left: auto;
     color: var(--fg-3);
     font-size: var(--fs-xs);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .tags-row .meta-times {
+    margin-left: auto;
+  }
+
+  .metabar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--pad-xs);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: var(--gap);
+  }
+
+  .mobile-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+    flex-shrink: 0;
+  }
+
+  .metabar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--icon-btn);
+    height: var(--icon-btn);
+    padding: 0 var(--s2);
+    border-radius: var(--r-sm);
+    color: var(--fg-2);
+    flex-shrink: 0;
+  }
+
+  .metabar button:active {
+    background: var(--bg-3);
+    color: var(--fg);
   }
 
   .content-scroll {
