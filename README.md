@@ -1,6 +1,14 @@
-# folio
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="media/folio400-transparent-letterbounds-ffffff.png">
+    <source media="(prefers-color-scheme: light)" srcset="media/folio400-transparent-letterbounds-0f0f0f.png">
+    <img alt="folio" src="media/folio400-transparent-letterbounds-0f0f0f.png" height="80">
+  </picture>
+</p>
 
-Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync.
+<p align="center">
+  Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync.
+</p>
 
 ## Features
 
