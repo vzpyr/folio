@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 SRC_TAURI = ROOT / "src-tauri"
 
-MASTER = ROOT / "media" / "f400-transparent-letterbounds.png"
+MASTER = ROOT / "media" / "f400-transparent-letterbounds-ffffff.png"
 WORDMARK_LIGHT = ROOT / "media" / "folio400-transparent-letterbounds-0f0f0f.png"
 WORDMARK_DARK = ROOT / "media" / "folio400-transparent-letterbounds-ffffff.png"
 
