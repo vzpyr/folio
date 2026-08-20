@@ -618,6 +618,7 @@
                 role="listbox"
                 tabindex="-1"
                 onclick={(e) => e.stopPropagation()}
+                onkeydown={(e) => e.stopPropagation()}
               >
                 <button
                   type="button"
@@ -965,14 +966,6 @@
     height: 1px;
     background: var(--border);
     margin: var(--pad-xs) 0;
-  }
-
-  .menu-back {
-    color: var(--fg-3);
-  }
-
-  .menu-back:hover {
-    color: var(--fg);
   }
 
   .unassigned-filter {

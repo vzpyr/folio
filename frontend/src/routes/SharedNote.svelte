@@ -50,6 +50,10 @@
 
   const objectUrls = new Map<string, string>();
 
+  function focusElement(el: HTMLElement) {
+    el.focus();
+  }
+
   function showToast(msg: string) {
     toast = msg;
     if (toastTimer) clearTimeout(toastTimer);
@@ -387,7 +391,7 @@
             class="pw-input"
             placeholder="password"
             bind:value={passwordInput}
-            autofocus
+            use:focusElement
           />
           {#if error === "invalid_password"}
             <p class="error-msg">incorrect password</p>

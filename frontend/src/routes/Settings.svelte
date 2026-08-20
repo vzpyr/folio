@@ -602,30 +602,6 @@
     text-transform: lowercase;
   }
 
-  .sync-pill {
-    font-size: var(--fs-xs);
-    padding: var(--pad-xs);
-    border-radius: var(--r-full);
-    border: 1px solid var(--border);
-    text-transform: lowercase;
-    color: var(--fg-2);
-  }
-
-  .sync-pill.synced {
-    border-color: var(--g5);
-    color: var(--g5);
-  }
-
-  .sync-pill.offline {
-    border-color: var(--g3);
-    color: var(--g3);
-  }
-
-  .sync-pill.error {
-    border-color: var(--border-strong);
-    color: var(--fg);
-  }
-
   .ai-models {
     display: flex;
     flex-wrap: wrap;
