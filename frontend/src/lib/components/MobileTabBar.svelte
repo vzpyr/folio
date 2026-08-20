@@ -60,6 +60,11 @@
     padding: var(--pad-xs);
     color: var(--fg-3);
     border-radius: 0;
+    transition: color 0.15s ease, opacity 0.12s ease;
+  }
+
+  .tab:active {
+    opacity: 0.7;
   }
 
   .tab .label {

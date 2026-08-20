@@ -33,6 +33,26 @@
     return null;
   });
 
+  let prevRoute = $state("");
+  let navAnim = $state<"note-open" | "tab-to-settings" | "tab-to-notes" | "none">("none");
+
+  $effect(() => {
+    const current = appState.route;
+    const previous = prevRoute;
+    if (previous !== current) {
+      if (current.startsWith("note/")) {
+        navAnim = "note-open";
+      } else if (current === "settings" && previous !== "settings") {
+        navAnim = "tab-to-settings";
+      } else if (current === "" && previous === "settings") {
+        navAnim = "tab-to-notes";
+      } else {
+        navAnim = "none";
+      }
+      prevRoute = current;
+    }
+  });
+
   onMount(() => {
     const onFocus = () => {
       const st = appState.store;
@@ -68,12 +88,18 @@
   {#snippet mainContent()}
     {#if noteId}
       {#key noteId}
-        <Note id={noteId} />
+        <div class="view-pane {isMobile ? 'anim-note-enter' : ''}">
+          <Note id={noteId} />
+        </div>
       {/key}
     {:else if route === "settings"}
-      <Settings />
+      <div class="view-pane {isMobile && navAnim === 'tab-to-settings' ? 'anim-tab-right' : ''}">
+        <Settings />
+      </div>
     {:else}
-      <List />
+      <div class="view-pane {isMobile && navAnim === 'tab-to-notes' ? 'anim-tab-left' : ''}">
+        <List />
+      </div>
     {/if}
   {/snippet}
 
@@ -142,6 +168,27 @@
     overflow: hidden;
   }
 
+  .view-pane {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .anim-note-enter {
+    animation: noteSlideInMobile 0.19s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .anim-tab-right {
+    animation: slideFromRight 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .anim-tab-left {
+    animation: slideFromLeft 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   .sync-notices {
     position: fixed;
     top: calc(env(safe-area-inset-top) + var(--s4));
@@ -163,6 +210,7 @@
     border-radius: var(--r-md);
     padding: var(--pad-md);
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+    animation: noticeEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .sync-notice.conflict {

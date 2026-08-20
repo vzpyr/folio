@@ -560,6 +560,7 @@
     border-radius: var(--r-md);
     font-size: var(--fs-sm);
     color: var(--fg-2);
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   }
 
   .row-actions {

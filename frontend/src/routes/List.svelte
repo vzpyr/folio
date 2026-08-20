@@ -784,6 +784,7 @@
     padding: var(--pad-xs);
     cursor: pointer;
     white-space: nowrap;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .tag-chip:hover {
@@ -827,6 +828,7 @@
     border-radius: var(--r-md);
     margin-bottom: var(--s1);
     border: 1px solid transparent;
+    transition: background 0.1s ease, border-color 0.1s ease;
   }
 
   .note-row:hover {
@@ -940,6 +942,7 @@
     min-width: var(--menu-w);
     z-index: 20;
     box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .menu-item {
@@ -950,6 +953,7 @@
     font-size: var(--fs-sm);
     color: var(--fg-2);
     border-radius: 0;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .menu-item:hover {
@@ -993,6 +997,7 @@
     border: 1px solid var(--border);
     border-radius: var(--r-md);
     white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   }
 
   .btn-delete-all:hover {
@@ -1026,6 +1031,7 @@
     border-top: 1px solid var(--border);
     background: var(--bg-2);
     flex-shrink: 0;
+    animation: slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .bulk-count {
@@ -1046,6 +1052,7 @@
     color: var(--fg-2);
     border-radius: var(--r-sm);
     white-space: nowrap;
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
   .bulk-btn:hover {

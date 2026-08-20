@@ -264,6 +264,7 @@
     color: var(--fg-2);
     border-radius: var(--r-sm);
     text-align: left;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .filter-item:hover {
@@ -297,6 +298,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .btn-add-folder:hover {
@@ -315,6 +317,7 @@
     border-radius: var(--r-sm);
     text-align: left;
     cursor: default;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .folder-row:hover {

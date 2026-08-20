@@ -68,6 +68,7 @@
     border-radius: var(--r-md);
     background: var(--bg);
     color: var(--fg-2);
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   }
 
   .btn-ai:hover {

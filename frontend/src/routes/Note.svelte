@@ -1323,6 +1323,7 @@
     min-width: var(--menu-w);
     z-index: 50;
     box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .menu-item {
@@ -1333,6 +1334,7 @@
     font-size: var(--fs-sm);
     color: var(--fg-2);
     border-radius: var(--r-sm);
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .menu-item:hover {
@@ -1436,6 +1438,7 @@
     padding: var(--pad-xs);
     white-space: nowrap;
     flex-shrink: 0;
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .tag-remove {
@@ -1446,6 +1449,7 @@
     padding: var(--pad-xs);
     border-radius: var(--r-sm);
     cursor: pointer;
+    transition: color 0.1s ease;
   }
 
   .tag-remove:hover {
@@ -1512,6 +1516,7 @@
     border-radius: var(--r-sm);
     color: var(--fg-2);
     flex-shrink: 0;
+    transition: background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
   }
 
   .metabar button:active {
@@ -1586,6 +1591,7 @@
     color: var(--fg-2);
     padding: var(--pad-sm);
     border-radius: var(--r-sm);
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .backlink-item:hover {
@@ -1605,6 +1611,7 @@
     color: var(--fg);
     z-index: 60;
     text-transform: lowercase;
+    animation: toastEnter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .tbl-add {
@@ -1623,6 +1630,7 @@
     justify-content: center;
     cursor: pointer;
     padding: 0;
+    transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
   }
 
   .tbl-add:hover {
@@ -1642,6 +1650,7 @@
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .tbl-menu button {
@@ -1650,6 +1659,7 @@
     color: var(--fg-2);
     padding: var(--pad-sm);
     border-radius: var(--r-sm);
+    transition: background 0.1s ease, color 0.1s ease;
   }
 
   .tbl-menu button:hover {
@@ -1673,6 +1683,7 @@
     color: var(--fg-2);
     border-radius: var(--r-sm);
     margin-left: calc(-1 * var(--s1));
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
   .btn-back:hover {
