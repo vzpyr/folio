@@ -46,11 +46,11 @@ Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-
 - **Offline-First:** Optimistic local edits with exponential backoff reconnection.
 - **Conflict Handling:** Revision-based resolution that automatically preserves competing edits as conflict copies.
 
-## Install
+## Installation
 
 ### Pre-built Releases
 
-Download the latest release from the [Releases](https://github.com/vzpyr/folio/releases) page:
+Download the latest binaries from the [Releases](https://github.com/vzpyr/folio/releases) page:
 
 - **Linux:** `.deb`, `.rpm`, `.AppImage`
 - **macOS:** `.dmg`
@@ -58,34 +58,53 @@ Download the latest release from the [Releases](https://github.com/vzpyr/folio/r
 - **Android:** `.apk`
 - **iOS:** `.ipa`
 
-### AltStore / SideStore
+### iOS (AltStore / SideStore)
 
-Add the source URL below in AltStore or SideStore, then install and update folio like any other app.
+Add the source URL below in AltStore or SideStore to install and receive updates:
 
 ```
 https://raw.githubusercontent.com/vzpyr/folio/master/apps.json
 ```
 
-## Sync Server
+## Self-Hosted Sync Server
 
-### Docker
+The sync server is an optional, lightweight Rust service that handles encrypted note synchronization and backups.
+
+### Docker (Recommended)
 
 ```bash
 cd docker
 cp .env.example .env
 cp docker-compose.example.yml docker-compose.yml
-docker compose up -d # --build to build image from source
+docker compose up -d # use --build to compile image from source
 ```
 
-## Build From Source
+### From Source
 
-Requirements: Node.js 22+, npm, Cargo/Rust, Tauri CLI (`cargo install tauri-cli --locked`). Additionally, macOS/iOS require Xcode, and Android requires the Android SDK/NDK and a recent JDK. Linux additionally needs these packages:
+Requirements: Cargo/Rust.
 
 ```bash
-sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf file
+cd server
+cargo build --release
 ```
 
-### Desktop
+The compiled binary will be in `server/target/release/folio-server`.
+
+## Build from Source
+
+### Prerequisites
+
+- Node.js 22+ and npm
+- Rust and Cargo
+- Tauri CLI: `cargo install tauri-cli --locked`
+- **Linux dependencies:**
+  ```bash
+  sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf file
+  ```
+- **macOS / iOS:** Xcode and command line tools
+- **Android:** Android SDK/NDK and a recent JDK
+
+### Desktop (Linux, macOS, Windows)
 
 ```bash
 cd frontend
@@ -94,9 +113,9 @@ cd ..
 cargo tauri build
 ```
 
-Outputs land in `src-tauri/target/release/bundle/`.
+Bundled packages land in `src-tauri/target/release/bundle/`.
 
-### Mobile
+### Mobile (Android, iOS)
 
 ```bash
 cd frontend
@@ -110,17 +129,6 @@ Outputs land in `src-tauri/gen/`:
 
 - **Android:** `./android/app/build/outputs/apk/universal/release/`
 - **iOS:** `./apple/build/arm64/`
-
-### Server
-
-Requirements: Cargo/Rust.
-
-```bash
-cd server
-cargo build --release
-```
-
-Output lands in `server/target/release/folio-server`.
 
 ## License
 
