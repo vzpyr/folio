@@ -457,7 +457,8 @@ a,
   z-index: 60;
   max-height: 60vh;
   overflow-y: auto;
-  animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top left;
+  animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .dd-item {
@@ -829,6 +830,8 @@ a,
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  transform-origin: top left;
+  animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .editor-wrap .folio-editor .callout-opt {
@@ -1094,6 +1097,8 @@ a,
   border-radius: var(--r-md);
   box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
   z-index: 30;
+  transform-origin: bottom center;
+  animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .float-bar button {
@@ -1127,6 +1132,8 @@ a,
   border-radius: var(--r-md);
   padding: var(--pad-xs);
   box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+  transform-origin: top left;
+  animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .slash-list {
@@ -1246,11 +1253,11 @@ a,
 @keyframes dropdownEnter {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: scale(0.96) translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -1266,40 +1273,40 @@ a,
 @keyframes modalContentEnter {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: scale(0.96) translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1) translateY(0);
   }
 }
 
 @keyframes toastEnter {
   from {
     opacity: 0;
-    transform: translate(-50%, 6px);
+    transform: translate(-50%, 8px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translate(-50%, 0) scale(1);
   }
 }
 
 @keyframes noticeEnter {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-10px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 @keyframes slideFromRight {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translateX(48px);
   }
   to {
     opacity: 1;
@@ -1310,7 +1317,7 @@ a,
 @keyframes slideFromLeft {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-48px);
   }
   to {
     opacity: 1;
@@ -1321,7 +1328,7 @@ a,
 @keyframes noteSlideInMobile {
   from {
     opacity: 0;
-    transform: translateX(32px);
+    transform: translateX(64px);
   }
   to {
     opacity: 1;
@@ -1332,7 +1339,7 @@ a,
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(100%);
   }
   to {
     opacity: 1;

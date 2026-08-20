@@ -44,7 +44,7 @@
         navAnim = "note-open";
       } else if (current === "settings" && previous !== "settings") {
         navAnim = "tab-to-settings";
-      } else if (current === "" && previous === "settings") {
+      } else if (current === "" && (previous === "settings" || previous.startsWith("note/"))) {
         navAnim = "tab-to-notes";
       } else {
         navAnim = "none";
@@ -178,15 +178,15 @@
   }
 
   .anim-note-enter {
-    animation: noteSlideInMobile 0.19s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: noteSlideInMobile 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .anim-tab-right {
-    animation: slideFromRight 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideFromRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .anim-tab-left {
-    animation: slideFromLeft 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideFromLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .sync-notices {
@@ -210,7 +210,7 @@
     border-radius: var(--r-md);
     padding: var(--pad-md);
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
-    animation: noticeEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: noticeEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .sync-notice.conflict {

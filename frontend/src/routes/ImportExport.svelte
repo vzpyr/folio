@@ -401,7 +401,7 @@
     align-items: center;
     justify-content: center;
     z-index: 100;
-    animation: modalBackdropEnter 0.15s ease-out forwards;
+    animation: modalBackdropEnter 0.18s ease-out forwards;
   }
 
   .modal {
@@ -413,7 +413,7 @@
     border: 1px solid var(--border);
     border-radius: var(--r-lg);
     padding: var(--pad-lg);
-    animation: modalContentEnter 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: modalContentEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .modal-header {

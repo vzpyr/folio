@@ -943,7 +943,8 @@
     min-width: var(--menu-w);
     z-index: 20;
     box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top right;
+    animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .menu-item {
@@ -1024,7 +1025,7 @@
     border-top: 1px solid var(--border);
     background: var(--bg-2);
     flex-shrink: 0;
-    animation: slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .bulk-count {

@@ -371,6 +371,8 @@
     border-radius: var(--r-md);
     box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
     padding: var(--pad-xs);
+    transform-origin: top right;
+    animation: findBarEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .find-row,
@@ -384,6 +386,7 @@
     margin-top: var(--s1);
     border-top: 1px solid var(--border);
     padding-top: var(--s1);
+    animation: replaceRowEnter 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .find-input,
@@ -422,6 +425,7 @@
     height: var(--icon-btn-xs);
     border-radius: var(--r-sm);
     color: var(--fg-2);
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
   .find-btn:hover,
@@ -439,6 +443,7 @@
     font-size: var(--fs-sm);
     color: var(--fg-2);
     text-transform: none;
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
   .find-case:hover,
@@ -454,6 +459,7 @@
     border-radius: var(--r-sm);
     font-size: var(--fs-sm);
     color: var(--fg-2);
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
   .find-action:hover {
@@ -470,8 +476,45 @@
     transform: rotate(180deg);
   }
 
+  .find-caret {
+    transition: transform 0.15s ease;
+  }
+
   .find-caret.open {
     transform: rotate(180deg);
+  }
+
+  @keyframes findBarEnter {
+    from {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes findBarEnterMobile {
+    from {
+      opacity: 0;
+      transform: translateY(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes replaceRowEnter {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   @media (max-width: 800px) {
@@ -485,6 +528,8 @@
       border-left: none;
       border-right: none;
       border-top: none;
+      transform-origin: top;
+      animation: findBarEnterMobile 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
   }
 </style>

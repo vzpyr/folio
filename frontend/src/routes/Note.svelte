@@ -1323,7 +1323,8 @@
     min-width: var(--menu-w);
     z-index: 50;
     box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
-    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top right;
+    animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .menu-item {
@@ -1611,7 +1612,7 @@
     color: var(--fg);
     z-index: 60;
     text-transform: lowercase;
-    animation: toastEnter 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: toastEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .tbl-add {
@@ -1650,7 +1651,8 @@
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
-    animation: dropdownEnter 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform-origin: top left;
+    animation: dropdownEnter 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .tbl-menu button {
