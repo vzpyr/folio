@@ -200,6 +200,8 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
