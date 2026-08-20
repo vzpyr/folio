@@ -39,7 +39,7 @@
 ### AI Assistant
 
 - **Chat:** Connect any OpenAI-compatible provider (e.g. OpenRouter) to query your knowledge base (`search_notes`, `read_note`).
-- **Privacy:** Prompt interactions stay entirely on-device (temporarily) and never synced.
+- **Privacy:** Prompt interactions stay entirely on-device (temporarily) and are never synced.
 
 ### Platforms & Storage
 
