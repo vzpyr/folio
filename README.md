@@ -76,8 +76,6 @@ https://raw.githubusercontent.com/vzpyr/folio/master/apps.json
 
 ## Self-Hosted Sync Server
 
-The sync server is an optional, lightweight Rust service that handles encrypted note synchronization and backups.
-
 ### Docker (Recommended)
 
 ```bash
