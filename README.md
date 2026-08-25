@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync.
+  Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted sync
 </p>
 
 ## Features
