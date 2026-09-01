@@ -34,7 +34,7 @@ Download pre-built binaries from the [Releases](https://github.com/vzpyr/folio/r
 Add this source repository URL in AltStore or SideStore to install and receive updates:
 
 ```
-https://raw.githubusercontent.com/vzpyr/folio/master/apps.json
+https://raw.githubusercontent.com/vzpyr/folio/main/apps.json
 ```
 
 ## Sync Server Deployment

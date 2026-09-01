@@ -2,10 +2,10 @@
   "$schema": "https://github.com/SideStore/sidestore-source-types/raw/main/schema.json",
   "name": "folio",
   "identifier": "com.vzpyr.folio.source",
-  "sourceURL": "https://raw.githubusercontent.com/vzpyr/folio/master/apps.json",
+  "sourceURL": "https://raw.githubusercontent.com/vzpyr/folio/main/apps.json",
   "subtitle": "Minimal local-first Markdown notes app",
   "description": "Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync.",
-  "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/master/src-tauri/icons/ios/AppIcon-512@2x.png",
+  "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/main/src-tauri/icons/ios/AppIcon-512@2x.png",
   "apps": [
     {
       "name": "folio",
@@ -13,7 +13,7 @@
       "developerName": "vzpyr",
       "subtitle": "Minimal local-first Markdown notes app",
       "localizedDescription": "Minimal local-first Markdown notes app with WYSIWYG editing and optional end-to-end encrypted (E2EE) sync. Notes are plain .md files. Features rich media, slash commands, backlinks, deep search and vault-aware AI chat.",
-      "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/master/src-tauri/icons/ios/AppIcon-512@2x.png",
+      "iconURL": "https://raw.githubusercontent.com/vzpyr/folio/main/src-tauri/icons/ios/AppIcon-512@2x.png",
       "tintColor": "0f0f0f",
       "versions": [
         {
