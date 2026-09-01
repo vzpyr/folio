@@ -194,8 +194,7 @@ export function generatePassphrase(wordCount = 4): string {
   return picked.join("-");
 }
 
-export function generateRandomPassword(minLength = 12): string {
-  const wordCount = Math.ceil(minLength / 4);
+export function generateRandomPassword(wordCount = 4): string {
   return generatePassphrase(wordCount);
 }
 

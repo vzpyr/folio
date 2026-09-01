@@ -75,7 +75,7 @@
   }
 
   function generatePass() {
-    password = generateRandomPassword(12);
+    password = generateRandomPassword();
   }
 
   async function copyText(text: string, label: string) {
