@@ -100,6 +100,7 @@
     ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
   --font-editor: var(--font);
   --focus-ring: 2px solid var(--fg-3);
+  --mobile-breakpoint: 800px;
 }
 
 [data-theme="dark"] {
