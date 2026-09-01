@@ -362,7 +362,9 @@ async fn get_share_meta_or_data(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     validate_token_id(&id).map_err(err400)?;
-    let share = db::get_share(&state.db, &id).map_err(err500)?.ok_or_else(err404)?;
+    let share = db::get_share(&state.db, &id)
+        .map_err(err500)?
+        .ok_or_else(err404)?;
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -412,7 +414,9 @@ async fn unlock_share(
     body: String,
 ) -> Result<impl IntoResponse, ApiError> {
     validate_token_id(&id).map_err(err400)?;
-    let share = db::get_share(&state.db, &id).map_err(err500)?.ok_or_else(err404)?;
+    let share = db::get_share(&state.db, &id)
+        .map_err(err500)?
+        .ok_or_else(err404)?;
 
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -437,7 +441,11 @@ async fn unlock_share(
         let expected_verifier = share.verifier.unwrap_or_default();
 
         if expected_verifier.is_empty()
-            || !bool::from(provided_verifier.as_bytes().ct_eq(expected_verifier.as_bytes()))
+            || !bool::from(
+                provided_verifier
+                    .as_bytes()
+                    .ct_eq(expected_verifier.as_bytes()),
+            )
         {
             return Err((StatusCode::UNAUTHORIZED, json_error("invalid password")));
         }
@@ -473,7 +481,9 @@ async fn get_share_by_note(
 
     if let Some(s) = share {
         let expired = s.expires_at.is_some_and(|exp| now > exp);
-        let exhausted = s.max_views.is_some_and(|max| max > 0 && s.view_count >= max);
+        let exhausted = s
+            .max_views
+            .is_some_and(|max| max > 0 && s.view_count >= max);
         if !expired && !exhausted {
             return Ok(axum::Json(serde_json::json!({
                 "share": {
@@ -534,7 +544,13 @@ pub fn router(state: Arc<AppState>) -> Router {
             CorsLayer::new()
                 .allow_origin(Any)
                 .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE])
-                .allow_methods([Method::GET, Method::PUT, Method::POST, Method::DELETE, Method::OPTIONS]),
+                .allow_methods([
+                    Method::GET,
+                    Method::PUT,
+                    Method::POST,
+                    Method::DELETE,
+                    Method::OPTIONS,
+                ]),
         )
         .layer(middleware::from_fn(security_headers))
         .with_state(state)

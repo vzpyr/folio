@@ -1,14 +1,13 @@
 services:
   folio:
-    image: ghcr.io/vzpyr/folio-server:latest
+    image: ghcr.io/vzpyr/folio:latest
     container_name: folio
     env_file: .env
     ports:
-      - "${FOLIO_HOST_PORT:-8080}:${FOLIO_PORT:-8080}"
+      - "${FOLIO_HOST_PORT}:${FOLIO_PORT}"
     volumes:
       - folio_data:/data
       - folio_backups:/backups
-    user: "1000:1000"
     init: true
     read_only: true
     security_opt:
@@ -21,7 +20,7 @@ services:
           "CMD",
           "bash",
           "-c",
-          'exec 3<>/dev/tcp/127.0.0.1/${FOLIO_PORT:-8080}; printf "GET /api/health HTTP/1.0\r\n\r\n" >&3; grep -q " 200 " <&3',
+          'exec 3<>/dev/tcp/127.0.0.1/${FOLIO_PORT}; printf "GET /api/health HTTP/1.0\r\n\r\n" >&3; grep -q " 200 " <&3',
         ]
       interval: 30s
       timeout: 5s

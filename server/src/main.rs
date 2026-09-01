@@ -20,32 +20,44 @@ pub struct Config {
     pub backup: backup::BackupConfig,
 }
 
-const DEFAULT_MAX_BODY: usize = 32 * 1024 * 1024;
-const DEFAULT_HOST: &str = "0.0.0.0";
+fn env_required(key: &str) -> String {
+    std::env::var(key)
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| {
+            eprintln!("error: {key} environment variable is required");
+            std::process::exit(1);
+        })
+}
 
 fn load_config() -> Config {
-    let token = std::env::var("FOLIO_TOKEN")
-        .unwrap_or_default()
-        .trim()
-        .to_string();
+    let token = env_required("FOLIO_TOKEN").trim().to_string();
     if BASE64.decode(token.as_bytes()).map(|t| t.len()) != Ok(32) {
         eprintln!("error: FOLIO_TOKEN must be a 32-byte base64 key");
         std::process::exit(1);
     }
-    let data_dir = std::env::var("FOLIO_DATA_DIR").unwrap_or_else(|_| "/data".to_string());
+    let data_dir = env_required("FOLIO_DATA_DIR");
+    let host = env_required("FOLIO_HOST");
+    let port: u16 = env_required("FOLIO_PORT").parse().unwrap_or_else(|_| {
+        eprintln!("error: FOLIO_PORT must be a valid port number (1-65535)");
+        std::process::exit(1);
+    });
+    if !(1..=65535).contains(&port) {
+        eprintln!("error: FOLIO_PORT must be a valid port number (1-65535)");
+        std::process::exit(1);
+    }
+    let max_body: usize = env_required("FOLIO_MAX_BODY").parse().unwrap_or_else(|_| {
+        eprintln!("error: FOLIO_MAX_BODY must be a positive integer");
+        std::process::exit(1);
+    });
+    let backup = backup::from_env();
     Config {
         token,
-        host: std::env::var("FOLIO_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string()),
+        host,
         data_dir: data_dir.clone(),
-        port: std::env::var("FOLIO_PORT")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(8080),
-        max_body: std::env::var("FOLIO_MAX_BODY")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(DEFAULT_MAX_BODY),
-        backup: backup::from_env(&data_dir),
+        port,
+        max_body,
+        backup,
     }
 }
 

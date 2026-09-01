@@ -159,7 +159,10 @@ pub fn get_share(db: &Database, id: &str) -> Result<Option<ShareRecord>, rusqlit
     }
 }
 
-pub fn get_share_by_note(db: &Database, note_id: &str) -> Result<Option<ShareRecord>, rusqlite::Error> {
+pub fn get_share_by_note(
+    db: &Database,
+    note_id: &str,
+) -> Result<Option<ShareRecord>, rusqlite::Error> {
     let conn = db.lock();
     let mut stmt = conn.prepare(
         "SELECT id, note_id, has_password, salt, wrapped_key, verifier, expires_at, max_views, view_count, created_at

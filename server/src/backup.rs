@@ -80,34 +80,30 @@ fn parse_retention(raw: &str) -> Result<usize, String> {
     Ok(n)
 }
 
-pub fn from_env(data_dir: &str) -> BackupConfig {
-    let mut cfg = BackupConfig {
-        dir: PathBuf::from(data_dir).join("backups"),
-        ..BackupConfig::default()
+pub fn from_env() -> BackupConfig {
+    let enabled = parse_bool(&env_required("FOLIO_BACKUP_ENABLED"))
+        .unwrap_or_else(|e| fail("FOLIO_BACKUP_ENABLED", &e));
+    let dir_raw = env_required("FOLIO_BACKUP_DIR");
+    let interval = parse_interval(&env_required("FOLIO_BACKUP_INTERVAL"))
+        .unwrap_or_else(|e| fail("FOLIO_BACKUP_INTERVAL", &e));
+    let retention = parse_retention(&env_required("FOLIO_BACKUP_RETENTION"))
+        .unwrap_or_else(|e| fail("FOLIO_BACKUP_RETENTION", &e));
+    let on_start = parse_bool(&env_required("FOLIO_BACKUP_ON_START"))
+        .unwrap_or_else(|e| fail("FOLIO_BACKUP_ON_START", &e));
+    let mut dir = PathBuf::from(dir_raw.trim());
+    if dir.as_os_str().is_empty() {
+        fail("FOLIO_BACKUP_DIR", "must not be empty");
+    }
+    if !dir.is_absolute() {
+        dir = std::path::absolute(&dir).unwrap_or(dir);
+    }
+    let cfg = BackupConfig {
+        enabled,
+        dir,
+        interval,
+        retention,
+        on_start,
     };
-    if let Ok(v) = std::env::var("FOLIO_BACKUP_ENABLED") {
-        cfg.enabled = parse_bool(&v).unwrap_or_else(|e| fail("FOLIO_BACKUP_ENABLED", &e));
-    }
-    if let Ok(v) = std::env::var("FOLIO_BACKUP_DIR") {
-        let p = PathBuf::from(v.trim());
-        if p.as_os_str().is_empty() {
-            fail("FOLIO_BACKUP_DIR", "must not be empty");
-        }
-        cfg.dir = if p.is_absolute() {
-            p
-        } else {
-            std::path::absolute(&p).unwrap_or(p)
-        };
-    }
-    if let Ok(v) = std::env::var("FOLIO_BACKUP_INTERVAL") {
-        cfg.interval = parse_interval(&v).unwrap_or_else(|e| fail("FOLIO_BACKUP_INTERVAL", &e));
-    }
-    if let Ok(v) = std::env::var("FOLIO_BACKUP_RETENTION") {
-        cfg.retention = parse_retention(&v).unwrap_or_else(|e| fail("FOLIO_BACKUP_RETENTION", &e));
-    }
-    if let Ok(v) = std::env::var("FOLIO_BACKUP_ON_START") {
-        cfg.on_start = parse_bool(&v).unwrap_or_else(|e| fail("FOLIO_BACKUP_ON_START", &e));
-    }
     if cfg.enabled {
         fs::create_dir_all(&cfg.dir).unwrap_or_else(|e| {
             fail(
@@ -117,6 +113,16 @@ pub fn from_env(data_dir: &str) -> BackupConfig {
         });
     }
     cfg
+}
+
+fn env_required(key: &str) -> String {
+    std::env::var(key)
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| {
+            eprintln!("error: {key} environment variable is required");
+            std::process::exit(1);
+        })
 }
 
 pub async fn run_loop(state: Arc<AppState>, cfg: BackupConfig) {

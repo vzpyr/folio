@@ -62,11 +62,7 @@ fn share_path(data_dir: &str, id: &str) -> PathBuf {
         .join(format!("{id}.json"))
 }
 
-pub fn write_share_envelope(
-    data_dir: &str,
-    envelope: &ShareEnvelope,
-    id: &str,
-) -> io::Result<()> {
+pub fn write_share_envelope(data_dir: &str, envelope: &ShareEnvelope, id: &str) -> io::Result<()> {
     let path = share_path(data_dir, id);
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;

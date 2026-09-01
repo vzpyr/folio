@@ -244,7 +244,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/vzpyr/folio-server
+          images: ghcr.io/vzpyr/folio
           tags: |
             type=semver,pattern={{version}}
             type=raw,value=latest
