@@ -36,25 +36,152 @@ export function generateRandomKey(): Uint8Array {
 }
 
 const WORDS = [
-  "acorn", "amber", "anchor", "arrow", "autumn", "badge", "beacon", "breeze",
-  "bridge", "bronze", "cabin", "canyon", "castle", "cedar", "cipher", "cliff",
-  "cloud", "clover", "comet", "coral", "crater", "crest", "crystal", "dawn",
-  "delta", "desert", "dune", "eagle", "echo", "ember", "falcon", "fern",
-  "field", "flame", "flint", "forest", "fossil", "frost", "galaxy", "garden",
-  "glacier", "glade", "grove", "harbor", "haven", "hawk", "hazel", "hearth",
-  "horizon", "island", "jasper", "jungle", "lagoon", "lantern", "leaf", "lotus",
-  "lunar", "maple", "marble", "meadow", "meteor", "mist", "monarch", "moon",
-  "moss", "mountain", "nebula", "nest", "nexus", "oasis", "ocean", "olive",
-  "onyx", "opal", "orbit", "otter", "pebble", "pine", "planet", "plaza",
-  "plume", "polar", "prairie", "prism", "pulse", "pyramid", "quantum", "quarry",
-  "quartz", "radar", "radiant", "rain", "raven", "reef", "ridge", "river",
-  "robin", "ruby", "saddle", "safari", "sahara", "sail", "sapphire", "shadow",
-  "shield", "sierra", "silver", "solar", "spark", "spring", "spruce", "star",
-  "stone", "storm", "stream", "summit", "sunset", "surge", "swift", "talon",
-  "temple", "thistle", "thunder", "tide", "timber", "topaz", "torch", "tower",
-  "trail", "tulip", "tundra", "valley", "vapor", "vector", "velvet", "vessel",
-  "violet", "vortex", "voyage", "walnut", "wave", "whisper", "willow", "winter",
-  "zenith", "zephyr"
+  "acorn",
+  "amber",
+  "anchor",
+  "arrow",
+  "autumn",
+  "badge",
+  "beacon",
+  "breeze",
+  "bridge",
+  "bronze",
+  "cabin",
+  "canyon",
+  "castle",
+  "cedar",
+  "cipher",
+  "cliff",
+  "cloud",
+  "clover",
+  "comet",
+  "coral",
+  "crater",
+  "crest",
+  "crystal",
+  "dawn",
+  "delta",
+  "desert",
+  "dune",
+  "eagle",
+  "echo",
+  "ember",
+  "falcon",
+  "fern",
+  "field",
+  "flame",
+  "flint",
+  "forest",
+  "fossil",
+  "frost",
+  "galaxy",
+  "garden",
+  "glacier",
+  "glade",
+  "grove",
+  "harbor",
+  "haven",
+  "hawk",
+  "hazel",
+  "hearth",
+  "horizon",
+  "island",
+  "jasper",
+  "jungle",
+  "lagoon",
+  "lantern",
+  "leaf",
+  "lotus",
+  "lunar",
+  "maple",
+  "marble",
+  "meadow",
+  "meteor",
+  "mist",
+  "monarch",
+  "moon",
+  "moss",
+  "mountain",
+  "nebula",
+  "nest",
+  "nexus",
+  "oasis",
+  "ocean",
+  "olive",
+  "onyx",
+  "opal",
+  "orbit",
+  "otter",
+  "pebble",
+  "pine",
+  "planet",
+  "plaza",
+  "plume",
+  "polar",
+  "prairie",
+  "prism",
+  "pulse",
+  "pyramid",
+  "quantum",
+  "quarry",
+  "quartz",
+  "radar",
+  "radiant",
+  "rain",
+  "raven",
+  "reef",
+  "ridge",
+  "river",
+  "robin",
+  "ruby",
+  "saddle",
+  "safari",
+  "sahara",
+  "sail",
+  "sapphire",
+  "shadow",
+  "shield",
+  "sierra",
+  "silver",
+  "solar",
+  "spark",
+  "spring",
+  "spruce",
+  "star",
+  "stone",
+  "storm",
+  "stream",
+  "summit",
+  "sunset",
+  "surge",
+  "swift",
+  "talon",
+  "temple",
+  "thistle",
+  "thunder",
+  "tide",
+  "timber",
+  "topaz",
+  "torch",
+  "tower",
+  "trail",
+  "tulip",
+  "tundra",
+  "valley",
+  "vapor",
+  "vector",
+  "velvet",
+  "vessel",
+  "violet",
+  "vortex",
+  "voyage",
+  "walnut",
+  "wave",
+  "whisper",
+  "willow",
+  "winter",
+  "zenith",
+  "zephyr",
 ];
 
 export function generatePassphrase(wordCount = 4): string {
@@ -67,8 +194,9 @@ export function generatePassphrase(wordCount = 4): string {
   return picked.join("-");
 }
 
-export function generateRandomPassword(length = 12): string {
-  return generatePassphrase(4);
+export function generateRandomPassword(minLength = 12): string {
+  const wordCount = Math.ceil(minLength / 4);
+  return generatePassphrase(wordCount);
 }
 
 async function importAesKey(rawKey: Uint8Array): Promise<CryptoKey> {
@@ -94,7 +222,12 @@ async function derivePasswordKey(
   );
 
   const key = await crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt as BufferSource, iterations: 600_000, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt: salt as BufferSource,
+      iterations: 600_000,
+      hash: "SHA-256",
+    },
     passKey,
     { name: "AES-GCM", length: 256 },
     false,
@@ -102,7 +235,12 @@ async function derivePasswordKey(
   );
 
   const verifierBits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt: enc.encode("folio:share-verifier:" + toBase64(salt)), iterations: 600_000, hash: "SHA-256" },
+    {
+      name: "PBKDF2",
+      salt: enc.encode("folio:share-verifier:" + toBase64(salt)),
+      iterations: 600_000,
+      hash: "SHA-256",
+    },
     passKey,
     256,
   );
@@ -156,7 +294,10 @@ export async function encryptShare(
 
   const salt = new Uint8Array(16);
   crypto.getRandomValues(salt);
-  const { key: pwdKey, verifier } = await derivePasswordKey(password.trim(), salt);
+  const { key: pwdKey, verifier } = await derivePasswordKey(
+    password.trim(),
+    salt,
+  );
 
   const wrapIv = new Uint8Array(12);
   crypto.getRandomValues(wrapIv);
@@ -166,7 +307,9 @@ export async function encryptShare(
     shareKey as BufferSource,
   );
 
-  const wrappedCombined = new Uint8Array(wrapIv.length + wrappedCipher.byteLength);
+  const wrappedCombined = new Uint8Array(
+    wrapIv.length + wrappedCipher.byteLength,
+  );
   wrappedCombined.set(wrapIv, 0);
   wrappedCombined.set(new Uint8Array(wrappedCipher), wrapIv.length);
 
