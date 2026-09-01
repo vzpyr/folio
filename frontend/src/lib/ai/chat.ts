@@ -227,8 +227,6 @@ function cleanupDraft(msgs: ChatMessage[], draftId: string): void {
   }
 }
 
-function interruptCleanup(): void {}
-
 interface TurnResult {
   content: string;
   toolCalls: ToolCall[];
