@@ -1,22 +1,4 @@
-/* folio design system — tokens + global styles.
- *
- * RULES (the "requirement" for every margin/padding/gap/height):
- *   • ALL spacing is symmetric (same value on all four sides) — the only
- *     exception is height-fixed controls (inputs, buttons, selects), which
- *     use `padding: 0 var(--ctl-px)`.
- *   • ALL spacing comes from tokens: the --s* grid, the symmetric --pad-*
- *     scale, and the --gap* values. No raw px/rem numbers in components.
- *   • ALL heights come from tokens: --ctl-h (primary controls), --icon-btn*
- *     (icon buttons), --tabbar-h, --fab, --dot.
- *   • Density changes (mobile ≤800px, or any coarse-pointer device) happen
- *     by overriding TOKENS ONLY in the media blocks below — there are no
- *     element rules there, so nothing can ever grow out of sync.
- *   • The mobile breakpoint MUST stay in sync with MOBILE_BREAKPOINT in
- *     src/lib/util/mobile.svelte.ts.
- */
-
 :root {
-  /* grayscale ramp — light theme */
   --g0: #ffffff;
   --g1: #f6f6f6;
   --g2: #ececec;
@@ -39,7 +21,6 @@
   --selection-bg: var(--g2);
   --code-bg: var(--g1);
 
-  /* callout accents */
   --callout-note: #2f6fed;
   --callout-info: #0ca678;
   --callout-tip: #2b8a3e;
@@ -47,7 +28,6 @@
   --callout-danger: #c92a2a;
   --callout-question: #7048e8;
 
-  /* syntax highlighting */
   --hl-comment: #6e7781;
   --hl-keyword: #cf222e;
   --hl-string: #0a3069;
@@ -59,7 +39,6 @@
   --hl-addition: #116329;
   --hl-deletion: #82071e;
 
-  /* spacing — strict 4px grid (the only spacing values the app uses) */
   --s1: 4px;
   --s2: 8px;
   --s3: 12px;
@@ -67,62 +46,52 @@
   --s5: 24px;
   --s6: 32px;
 
-  /* radii */
   --r-xs: 4px;
   --r-sm: 6px;
   --r-md: 10px;
   --r-lg: 16px;
   --r-full: 9999px;
 
-  /* typography scale — every font-size in the app comes from here */
-  --fs-xs: 12px; /* meta, timestamps, counts, section labels */
-  --fs-sm: 13px; /* buttons, combos, list previews */
-  --fs-base: 14px; /* body, list titles, inputs */
-  --fs-lg: 16px; /* note title, modal titles */
-  --fs-xl: 18px; /* app/section headings */
-  --fs-2xl: 22px; /* page h1, editor h1 */
-  --fs-3xl: 24px; /* gate h1 */
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-3xl: 24px;
 
-  /* symmetric padding scale — every box pads the SAME on all four sides.
-     controls are the one exception: height is fixed by --ctl-h, so their
-     vertical padding is 0 and horizontal is --ctl-px. */
-  --pad-xs: var(--s1); /* chips, tags, dense strips, menus */
-  --pad-sm: var(--s2); /* compact rows, small buttons, menu items */
-  --pad-md: var(--s3); /* dropdown items, cards, notices */
-  --pad-lg: var(--s4); /* bars, panels, rows, modals */
-  --pad-xl: var(--s5); /* pages */
+  --pad-xs: var(--s1);
+  --pad-sm: var(--s2);
+  --pad-md: var(--s3);
+  --pad-lg: var(--s4);
+  --pad-xl: var(--s5);
 
-  /* contextual aliases — still symmetric */
-  --pad-bar: var(
-    --s3
-  ); /* bars: chrome, list header, note topbar/toolbar/metabar */
-  --pad-panel: var(--s3); /* side panels: sidebar sections, backlinks */
-  --pad-row: var(--s3); /* list rows + the list container */
-  --pad-page: var(--s5); /* page bodies: settings, editor */
+  --pad-bar: var(--s3);
+  --pad-panel: var(--s3);
+  --pad-row: var(--s3);
+  --pad-page: var(--s5);
 
-  /* gaps — the only inter-element gaps in the app */
-  --gap: var(--s2); /* between related elements (flex gaps, small margins) */
-  --gap-lg: var(--s3); /* between groups */
+  --gap: var(--s2);
+  --gap-lg: var(--s3);
 
-  /* density — desktop defaults */
-  --ctl-h: 40px; /* primary bar controls: inputs, buttons, selects, combos */
-  --ctl-px: var(--s3); /* horizontal padding inside a height-fixed control */
-  --icon-btn: 28px; /* secondary icon buttons (toolbar, +new, close) */
-  --icon-btn-xs: 20px; /* tiny inline icon buttons (×, add-folder) */
-  --panel-w: 240px; /* side panels: backlinks, wiki picker */
-  --sidebar-w: 220px; /* desktop sidebar */
-  --dot: 6px; /* status/unsaved dots */
-  --maxw-editor: 760px; /* editor column */
-  --maxw-page: 600px; /* settings page */
-  --maxw-modal: 480px; /* modals */
-  --maxw-chat: 640px; /* ai chat modal */
-  --maxw-narrow: 360px; /* narrow content columns: gate card, notices stack */
-  --tabbar-h: 56px; /* mobile bottom tab bar (excl. safe area) */
-  --fab: 46px; /* elevated create button on the tab bar */
-  --fab-overhang: 10px; /* how far the fab pokes above the tab bar */
-  --fab-icon: 24px; /* icon inside the fab */
-  --menu-w: 160px; /* context menus (table menu) */
-  --search-w: 140px; /* desktop list search input */
+  --ctl-h: 40px;
+  --ctl-px: var(--s3);
+  --icon-btn: 28px;
+  --icon-btn-xs: 20px;
+  --panel-w: 240px;
+  --sidebar-w: 220px;
+  --dot: 6px;
+  --maxw-editor: 760px;
+  --maxw-page: 600px;
+  --maxw-modal: 480px;
+  --maxw-chat: 640px;
+  --maxw-narrow: 360px;
+  --tabbar-h: 56px;
+  --fab: 46px;
+  --fab-overhang: 10px;
+  --fab-icon: 24px;
+  --menu-w: 160px;
+  --search-w: 140px;
 
   --font:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -164,13 +133,9 @@
   --hl-deletion: #ffdcd7;
 }
 
-/* MOBILE BREAKPOINT: 800px — keep in sync with MOBILE_BREAKPOINT in
-   src/lib/util/mobile.svelte.ts. Narrow screens get bigger touch targets and
-   denser page/row padding. Token-only overrides: no element rules here,
-   so nothing can ever "blow up" on its own. */
 @media (max-width: 800px) {
   :root {
-    --ctl-h: 44px; /* ≥44px touch targets */
+    --ctl-h: 44px;
     --icon-btn: 32px;
     --icon-btn-xs: 24px;
     --pad-row: var(--s2);
@@ -178,8 +143,6 @@
   }
 }
 
-/* touch hardware (tablets, touch laptops — wide windows with a coarse
-   pointer): the same density bump, token-only. */
 @media (pointer: coarse) {
   :root {
     --ctl-h: 44px;
@@ -188,7 +151,6 @@
   }
 }
 
-/* global reset */
 *,
 *::before,
 *::after {
@@ -221,18 +183,15 @@ body {
   background: var(--bg);
 }
 
-/* selection */
 ::selection {
   background: var(--selection-bg);
 }
 
-/* focus */
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: 1px;
 }
 
-/* base elements */
 input,
 button,
 select {
@@ -291,9 +250,6 @@ hr {
   margin: var(--s4) 0;
 }
 
-/* checkboxes — one shared style for every checkbox in the app (list filters,
-   vault gate, editor task lists). grayscale only: no native white background,
-   outline is the lighter border gray, checkmark is a muted gray. */
 input[type="checkbox"] {
   appearance: none;
   -webkit-appearance: none;
@@ -365,12 +321,10 @@ select:focus-visible {
   outline-offset: -1px;
 }
 
-/* utility */
 .lc {
   text-transform: lowercase;
 }
 
-/* touch — no double-tap zoom, no hover-only affordances */
 button,
 input,
 select,
@@ -381,10 +335,6 @@ a,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* shared combobox — the folder picker and the sort picker are the SAME
-   widget: a button + caret shell that opens a custom .dd listbox. both
-   combos share this shell AND the .dd menu recipe below, so they look
-   identical open and closed, wherever they're used. */
 .combo {
   position: relative;
   display: inline-flex;
@@ -401,7 +351,10 @@ a,
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 .combo:hover {
   border-color: var(--border-strong);
@@ -427,9 +380,6 @@ a,
   color: var(--fg-3);
 }
 
-/* combo in a growing flex row (the mobile bar): the shell fills its wrapper,
-   so two combos split the bar 50/50 and long labels ellipsize instead of
-   shoving the sibling combo. .combo-wrap also anchors the .dd menu. */
 .combo-wrap {
   position: relative;
   display: flex;
@@ -440,9 +390,6 @@ a,
   min-width: 0;
 }
 
-/* shared dropdown — both combos open the SAME listbox: a positioned menu
-   of .dd-item rows (check + label [+ count]). lives next to .combo so the
-   folder and sort menus can never drift apart. */
 .dd {
   position: absolute;
   top: calc(100% + var(--s1));
@@ -472,7 +419,9 @@ a,
   font-size: var(--fs-sm);
   color: var(--fg-2);
   min-height: var(--ctl-h);
-  transition: background 0.1s ease, color 0.1s ease;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
 }
 .dd-item:hover {
   background: var(--bg-3);
@@ -512,9 +461,6 @@ a,
   margin: var(--pad-xs);
 }
 
-/* spinning icon — .spin is applied to shared Icon svgs (sync busy state).
-   global because the svg element is rendered by Icon.svelte, so a scoped
-   .spin selector in the caller would be dropped by the compiler. */
 .spin {
   animation: folio-spin 0.9s linear infinite;
   transform-origin: 50% 50%;
@@ -525,14 +471,6 @@ a,
   }
 }
 
-/* shared bar header — the sidebar header and the list header are the SAME
-   bar: --pad-bar padding around a --ctl-h control row. bars that hold
-   smaller content (the sidebar's 28px + button) still enforce the full bar
-   height via min-height. the +1px is the border-bottom: with border-box,
-   min-height must include it, otherwise the CONTENT box lands on
-   --ctl-h − 1px and bars with smaller content sit 1px short of bars with
-   full-size controls. this keeps every top bar in the app (this, plus the
-   note topbar which is naturally --ctl-h) edge-to-edge identical. */
 .bar-header {
   display: flex;
   align-items: center;
@@ -543,17 +481,12 @@ a,
   flex-shrink: 0;
 }
 
-/* shared bar title — "folio" and the list heading ("notes"/"trash") are the
-   same text: same level, same size, same weight, same lowercase casing. */
 .bar-title {
   font-size: var(--fs-xl);
   font-weight: 600;
   text-transform: lowercase;
 }
 
-/* tiptap editor content — rendered inside .editor-wrap in the note view. the
-   selectors are global because the ProseMirror dom lives outside the svelte
-   component's scope; the .folio-editor prefix keeps them contained. */
 .editor-wrap .folio-editor {
   max-width: var(--maxw-editor);
   margin: 0 auto;
@@ -1083,10 +1016,6 @@ a,
   cursor: nwse-resize;
 }
 
-/* floating format bar + slash menu — rendered into TS-created dom by the
-   floating-menu and suggestion extensions (editor.ts, slash.ts); global like
-   the .math-* styles because the elements live outside svelte scope. */
-
 .float-bar {
   display: flex;
   align-items: center;
@@ -1225,10 +1154,6 @@ a,
   border-radius: var(--r-sm);
 }
 
-/* find/replace — search results are rendered as PM decorations (outside
-   svelte scope), so like .suggestion they live here globally. every match
-   gets a solid mid-gray bar; the current one inverts to the strongest
-   on-system contrast (--fg) so it reads as "you are here" at a glance. */
 .folio-editor .search-result {
   background: var(--fg-3);
   color: var(--bg);
