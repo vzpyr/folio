@@ -39,7 +39,7 @@ function done(suite) {
 
   const p1 = generateRandomPassword();
   const p2 = generateRandomPassword();
-  check("generates 4-word passphrase", p1.split("-").length === 4);
+  check("generates 5-word passphrase", p1.split("-").length === 5);
   check("random passphrases are unique", p1 !== p2);
 }
 
