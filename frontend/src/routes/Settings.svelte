@@ -300,14 +300,14 @@
   <section>
     <h2>sync</h2>
     <p class="signout-note">
-      optional — link a self-hosted server to sync across devices. without it,
+      optional - link a self-hosted server to sync across devices. without it,
       folio is fully local on this device.
     </p>
     {#if syncConnected || syncStatus === "offline" || syncConfigured}
       {#if !syncConnected}
         <div class="setting-row">
           <span class="setting-label">server</span><span
-            class="setting-value mono vault-path">{syncUrl || "—"}</span
+            class="setting-value mono vault-path">{syncUrl || "-"}</span
           >
         </div>
       {/if}
@@ -349,7 +349,7 @@
   <section>
     <h2>ai</h2>
     <p class="signout-note">
-      optional — connect an openai-compatible chat api (openai, openrouter,
+      optional - connect an openai-compatible chat api (openai, openrouter,
       groq, ollama, …). credentials stay on this device and are never synced.
     </p>
     <label class="sync-field">
@@ -411,7 +411,7 @@
     {#if isDesktop()}
       <div class="setting-row">
         <span class="setting-label">folder</span>
-        <span class="setting-value mono vault-path">{vaultDir || "—"}</span>
+        <span class="setting-value mono vault-path">{vaultDir || "-"}</span>
       </div>
       <p class="signout-note">
         notes are plain .md files here; external edits are picked up on focus or
@@ -435,7 +435,7 @@
     </div>
     {#if confirmSignOut}
       <p class="signout-note">
-        locks the vault and clears the remembered passphrase — notes, token and
+        locks the vault and clears the remembered passphrase - notes, token and
         server url stay
       </p>
     {/if}
@@ -587,6 +587,11 @@
     color: var(--fg-3);
     margin-top: var(--s2);
     text-transform: lowercase;
+  }
+
+  h2 + .signout-note {
+    margin-top: 0;
+    margin-bottom: var(--gap-lg);
   }
 
   .sync-field {

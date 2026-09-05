@@ -361,6 +361,19 @@ for (const [name, md, mode] of cases) {
     );
     edB.destroy();
   }
+  {
+    const ed = build(
+      '<p><a href="https://example.com">https://example.com</a></p>',
+    );
+    const slice = ed.state.doc.slice(1, ed.state.doc.content.size - 1);
+    const copied = ed.storage.markdown.serializer.serialize(slice.content);
+    ed.destroy();
+    check(
+      "plain link copy has no angle brackets",
+      norm(copied).trim() === "https://example.com",
+      JSON.stringify(copied),
+    );
+  }
   const ed6 = build("");
   ed6
     .chain()

@@ -181,7 +181,7 @@ body {
 #app {
   height: 100%;
   padding-top: env(safe-area-inset-top);
-  background: var(--bg);
+  background: var(--bg-2);
 }
 
 ::selection {
@@ -509,7 +509,6 @@ a,
 .editor-wrap .folio-editor h4 {
   font-weight: 600;
   margin: var(--s5) 0 var(--s3);
-  text-transform: lowercase;
 }
 
 .editor-wrap .folio-editor h1 {

@@ -11,10 +11,10 @@
     <title>folio</title>
     <style>
       html {
-        background: #ffffff;
+        background: #f6f6f6;
       }
       html[data-theme="dark"] {
-        background: #0f0f0f;
+        background: #171717;
       }
     </style>
     <script>
@@ -23,7 +23,8 @@
           var t = localStorage.getItem("folio:theme") || "light";
           document.documentElement.dataset.theme = t;
           var m = document.getElementById("meta-theme-color");
-          if (m) m.setAttribute("content", t === "dark" ? "#171717" : "#f6f6f6");
+          if (m)
+            m.setAttribute("content", t === "dark" ? "#171717" : "#f6f6f6");
           if (window.FolioSplash && window.FolioSplash.setTheme) {
             window.FolioSplash.setTheme(t);
           }

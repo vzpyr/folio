@@ -1408,7 +1408,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--gap);
-    padding: var(--pad-xs);
+    padding: var(--pad-xs) var(--pad-bar);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     min-width: 0;

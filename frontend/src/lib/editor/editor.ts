@@ -16,8 +16,13 @@ import Placeholder from "@tiptap/extension-placeholder";
 import FloatingMenu from "@tiptap/extension-floating-menu";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownMarkSpec, MarkdownNodeSpec } from "tiptap-markdown";
-import { TextSelection, Plugin, PluginKey, EditorState } from "@tiptap/pm/state";
-import { DOMParser } from "@tiptap/pm/model";
+import {
+  TextSelection,
+  Plugin,
+  PluginKey,
+  EditorState,
+} from "@tiptap/pm/state";
+import { DOMParser, type Mark, type Node as PMNode } from "@tiptap/pm/model";
 import type { Transaction } from "@tiptap/pm/state";
 import type { EditorView } from "@tiptap/pm/view";
 import { mount } from "svelte";
@@ -45,6 +50,21 @@ export function isSafeHref(href: string): boolean {
     scheme === "https" ||
     scheme === "mailto" ||
     scheme === "blob"
+  );
+}
+
+function isPlainURL(link: Mark, parent: PMNode, index: number): boolean {
+  if (link.attrs.title || !/^\w+:/.test(link.attrs.href)) return false;
+  const content = parent.child(index);
+  if (
+    !content.isText ||
+    content.text !== link.attrs.href ||
+    content.marks[content.marks.length - 1] !== link
+  )
+    return false;
+  return (
+    index === parent.childCount - 1 ||
+    !link.isInSet(parent.child(index + 1).marks)
   );
 }
 
@@ -644,8 +664,37 @@ export function createEditor(parent: HTMLElement, opts: EditorOptions): Editor {
         addInputRules() {
           return [linkInputRule];
         },
+        addStorage() {
+          return {
+            markdown: {
+              serialize: {
+                open(
+                  state: { inAutolink?: boolean },
+                  mark: Mark,
+                  parent: PMNode,
+                  index: number,
+                ) {
+                  state.inAutolink = isPlainURL(mark, parent, index);
+                  return state.inAutolink ? "" : "[";
+                },
+                close(state: { inAutolink?: boolean }, mark: Mark) {
+                  const inAutolink = state.inAutolink;
+                  state.inAutolink = undefined;
+                  return inAutolink
+                    ? ""
+                    : "](" +
+                        mark.attrs.href.replace(/[\(\)"]/g, "\\$&") +
+                        (mark.attrs.title
+                          ? ` "${mark.attrs.title.replace(/"/g, '\\"')}"`
+                          : "") +
+                        ")";
+                },
+              },
+            },
+          };
+        },
       }).configure({
-        openOnClick: false,
+        openOnClick: true,
         autolink: true,
         linkOnPaste: true,
         validate: isSafeHref,

@@ -99,6 +99,12 @@ export async function startServer(opts = {}) {
       FOLIO_DATA_DIR: dataDir,
       FOLIO_HOST: "127.0.0.1",
       FOLIO_PORT: String(port),
+      FOLIO_MAX_BODY: String(opts.maxBody ?? 33554432),
+      FOLIO_BACKUP_ENABLED: "false",
+      FOLIO_BACKUP_DIR: join(dataDir, "backups"),
+      FOLIO_BACKUP_INTERVAL: "24h",
+      FOLIO_BACKUP_RETENTION: "7",
+      FOLIO_BACKUP_ON_START: "false",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

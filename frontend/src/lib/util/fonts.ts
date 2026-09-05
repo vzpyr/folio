@@ -114,7 +114,7 @@ function loadWebfonts(id: string, slugs: Set<string>): void {
     return;
   }
 
-  const families = [...slugs].map((s) => `${s}:${WEIGHTS}`).join("&family=");
+  const families = [...slugs].map((s) => `${s}:${WEIGHTS}`).join("|");
   const href = `https://fonts.bunny.net/css?family=${families}&display=swap`;
 
   if (!link) {

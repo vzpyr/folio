@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState, navigate, toggleSettings } from "../../app.svelte.ts";
+  import { appState, navigate } from "../../app.svelte.ts";
   import { createNote } from "../actions.ts";
   import Icon from "./Icon.svelte";
 
@@ -29,7 +29,7 @@
   <button
     class="tab"
     class:active={settingsActive}
-    onclick={toggleSettings}
+    onclick={() => navigate("settings")}
     aria-label="settings"
     aria-current={settingsActive ? "page" : undefined}
   >
