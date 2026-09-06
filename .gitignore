@@ -3,4 +3,3 @@ frontend/node_modules/
 server/target/
 src-tauri/target/
 docker/.env
-docker/docker-compose.yml
