@@ -4,10 +4,12 @@ services:
     container_name: folio
     env_file: .env
     ports:
-      - "${FOLIO_HOST_PORT}:${FOLIO_PORT}"
+      - "${FOLIO_PORT}:${FOLIO_PORT}"
     volumes:
       - folio_data:/data
       - folio_backups:/backups
+    tmpfs:
+      - /tmp
     init: true
     read_only: true
     security_opt:
