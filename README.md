@@ -44,8 +44,7 @@ https://raw.githubusercontent.com/vzpyr/folio/main/apps.json
 ```bash
 cd docker
 cp .env.example .env
-cp docker-compose.example.yml docker-compose.yml
-docker compose up -d
+docker compose up -d --build
 ```
 
 ### From Source
