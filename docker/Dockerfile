@@ -13,15 +13,12 @@ COPY --from=frontend-build /build/frontend/dist /build/frontend/dist
 COPY server/src/ src/
 RUN touch src/main.rs && cargo build --release
 
-FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
-    rm -rf /var/lib/apt/lists/* && \
-    useradd -u 1000 -s /usr/sbin/nologin folio && \
-    mkdir -p /data /backups && chown folio /data /backups
-COPY --from=rust-build /build/server/target/release/folio-server /usr/local/bin/folio-server
+FROM debian:bookworm-slim
+RUN useradd -u 1000 -M folio && \
+    mkdir -p /data /backups && \
+    chown folio:folio /data /backups
+COPY --from=rust-build /build/server/target/release/folio-server /usr/local/bin/
 USER folio
-VOLUME /data
-VOLUME /backups
-EXPOSE 8080
+VOLUME ["/data", "/backups"]
 ENV FOLIO_DATA_DIR=/data
 ENTRYPOINT ["folio-server"]
